@@ -1,10 +1,11 @@
-# AulaFácil — Gemini
+# AulaFácil V6 — Ilustrações e pintura
 
-## Variáveis no Vercel
+## Novidades
+- Ilustrações vetoriais reais nas atividades quando solicitadas.
+- Educação Infantil sempre lúdica e ilustrada.
+- Novo modo **Atividade de pintura** com desenho grande para colorir.
+- Gabarito separado e respostas específicas.
 
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `GEMINI_API_KEY`
-- `GEMINI_MODEL` (opcional; padrão: `gemini-2.5-flash`)
-
-Depois de adicionar a chave, faça um Redeploy.
+## Vercel
+Variáveis: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GEMINI_API_KEY`.
+`GEMINI_MODEL` é opcional.
