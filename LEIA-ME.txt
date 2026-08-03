@@ -1,22 +1,18 @@
-AULAFÁCIL — CORREÇÃO DAS RESPOSTAS GENÉRICAS
+AULAFÁCIL — IMAGENS E DOWNLOAD CORRIGIDOS
 
-Substitua estes arquivos no GitHub:
+Substitua no GitHub:
 1. index.html
 2. app.js
 3. api/generate-activity.js
 
 Correções:
-- não entrega mais perguntas genéricas sobre matéria, tema e ano;
-- tenta mais de um modelo do Gemini;
-- mantém alternativas e gabarito sem letras duplicadas;
-- mantém as ilustrações;
-- se a IA falhar, mostra o erro verdadeiro em vez de criar uma atividade ruim.
+- ilustrações escolhidas pela resposta correta;
+- correr/pular/dançar usam imagem relacionada a movimento;
+- escrever usa lápis;
+- ler usa livro;
+- comer usa fruta;
+- nadar usa peixe;
+- download em PDF corrigido para celular;
+- atividades longas divididas em várias páginas.
 
-IMPORTANTE:
-No Vercel, confirme em Settings > Environment Variables:
-GEMINI_API_KEY = sua chave válida
-
-Após o commit:
-- aguarde o deploy;
-- abra o site em aba anônima;
-- gere uma atividade nova.
+Depois do commit, aguarde o Vercel e teste em aba anônima.

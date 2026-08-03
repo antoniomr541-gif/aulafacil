@@ -49,35 +49,40 @@ function clientWantsIllustrations(value){
 }
 
 function chooseClientIllustration(question,subject,topic,index){
-  const source=String(`${question?.prompt||''} ${subject||''} ${topic||''}`)
+  const correctIndex='ABCD'.indexOf(String(question?.correctOption||'').toUpperCase());
+  const correctText=correctIndex>=0&&Array.isArray(question?.options)
+    ? String(question.options[correctIndex]||'')
+    : '';
+
+  const source=String(`${correctText} ${question?.prompt||''} ${subject||''} ${topic||''}`)
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g,'');
 
   const rules=[
-    ['apple',['maca','fruta','alimentacao']],
-    ['flower',['flor','planta','jardim']],
-    ['sun',['sol','calor','verao','dia']],
-    ['cloud',['nuvem','chuva','clima','tempo']],
-    ['fish',['peixe','mar','rio','oceano']],
-    ['butterfly',['borboleta','inseto']],
-    ['tree',['arvore','natureza','floresta','ambiente']],
-    ['house',['casa','familia','moradia']],
-    ['planet',['planeta','espaco','universo','sistema solar']],
-    ['heart',['amor','amizade','respeito']],
+    ['pencil',['escrever','escrita','lapis','desenhar','pintar','copiar']],
+    ['book',['ler','leitura','livro','texto','portugues','pronome','vogal','alfabeto']],
+    ['ball',['correr','pular','saltar','brincar','jogar','futebol','esporte','movimento','mover o corpo','dancar']],
+    ['apple',['comer','maca','fruta','alimentacao','alimento']],
+    ['fish',['nadar','peixe','mar','rio','oceano','agua']],
+    ['butterfly',['voar','borboleta','inseto']],
+    ['flower',['flor','plantar','jardim','primavera']],
+    ['tree',['arvore','floresta','natureza','meio ambiente']],
+    ['house',['casa','morar','moradia','familia','bairro']],
+    ['heart',['amar','amor','amizade','respeito','sentimento']],
+    ['sun',['sol','dia','calor','verao']],
+    ['cloud',['chuva','nuvem','clima','tempo']],
+    ['planet',['planeta','espaco','universo','sistema solar','geografia']],
     ['triangle',['triangulo']],
     ['square',['quadrado']],
-    ['circle',['circulo','redondo']],
-    ['ball',['bola','futebol','esporte']],
-    ['book',['portugues','leitura','texto','pronome','vogal','alfabeto','historia']],
-    ['pencil',['escrita','escrever','escola','atividade']]
+    ['circle',['circulo','redondo']]
   ];
 
   for(const [kind,words] of rules){
     if(words.some(word=>source.includes(word)))return kind;
   }
 
-  return ['book','pencil','star','circle'][index%4];
+  return ['book','pencil','ball','star'][index%4];
 }
 
 function ensureClientIllustrations(activity,params){
@@ -85,14 +90,12 @@ function ensureClientIllustrations(activity,params){
   if(!clientWantsIllustrations(params?.illustrations))return activity;
 
   activity.questions.forEach((question,index)=>{
-    if(!question.illustration||!question.illustration.kind){
-      question.illustration={
-        kind:chooseClientIllustration(question,params?.subject,params?.topic,index),
-        count:1,
-        label:'',
-        caption:''
-      };
-    }
+    question.illustration={
+      kind:chooseClientIllustration(question,params?.subject,params?.topic,index),
+      count:1,
+      label:'',
+      caption:''
+    };
   });
 
   return activity;
@@ -152,10 +155,64 @@ function renderActivity(){
 }
 
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));$('studentPreview').classList.toggle('hidden',b.dataset.tab!=='student');$('teacherPreview').classList.toggle('hidden',b.dataset.tab!=='teacher')});
-function makePdf(elementId,file){const {jsPDF}=window.jspdf;const el=$(elementId);const doc=new jsPDF({unit:'pt',format:'a4'});doc.html(el,{callback:d=>d.save(file),x:25,y:25,width:545,windowWidth:794,html2canvas:{scale:.72,useCORS:true}})}
-$('studentPdf').onclick=()=>makePdf('studentPreview','atividade-aluno.pdf');$('teacherPdf').onclick=()=>makePdf('teacherPreview','gabarito-professor.pdf');$('newActivity').onclick=()=>{$('activityResult').classList.add('hidden');$('activityForm').reset();scrollTo({top:0,behavior:'smooth'})};
+async function makePdf(elementId,file,clickEvent){
+  const button=clickEvent?.currentTarget;
+  const originalText=button?.textContent||'Baixar PDF';
+
+  try{
+    if(button){button.disabled=true;button.textContent='Preparando PDF...';}
+
+    if(!window.html2canvas)throw new Error('O gerador de PDF não foi carregado. Atualize a página.');
+    if(!window.jspdf?.jsPDF)throw new Error('A biblioteca de PDF não foi carregada.');
+
+    const element=$(elementId);
+    if(!element)throw new Error('Conteúdo não encontrado para baixar.');
+
+    const canvas=await window.html2canvas(element,{
+      scale:1.5,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      scrollX:0,
+      scrollY:-window.scrollY,
+      windowWidth:Math.max(element.scrollWidth,794)
+    });
+
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+    const pageWidth=210;
+    const pageHeight=297;
+    const margin=8;
+    const usableWidth=pageWidth-(margin*2);
+    const imageHeight=(canvas.height*usableWidth)/canvas.width;
+    const imageData=canvas.toDataURL('image/jpeg',0.92);
+
+    let heightLeft=imageHeight;
+    let position=margin;
+
+    pdf.addImage(imageData,'JPEG',margin,position,usableWidth,imageHeight,'','FAST');
+    heightLeft-=pageHeight-(margin*2);
+
+    while(heightLeft>0){
+      pdf.addPage();
+      position=margin-(imageHeight-heightLeft);
+      pdf.addImage(imageData,'JPEG',margin,position,usableWidth,imageHeight,'','FAST');
+      heightLeft-=pageHeight-(margin*2);
+    }
+
+    pdf.save(file);
+  }catch(error){
+    console.error(error);
+    alert(error.message||'Não foi possível baixar o PDF.');
+  }finally{
+    if(button){button.disabled=false;button.textContent=originalText;}
+  }
+}
+$('studentPdf').onclick=e=>makePdf('studentPreview','atividade-aluno.pdf',e);
+$('teacherPdf').onclick=e=>makePdf('teacherPreview','gabarito-professor.pdf',e);
+$('newActivity').onclick=()=>{$('activityResult').classList.add('hidden');$('activityForm').reset();scrollTo({top:0,behavior:'smooth'})};
 $('reportForm').onsubmit=e=>{e.preventDefault();if(!profile.name||!profile.school)return openProfile();const d={type:$('reportType').value,clazz:$('reportClass').value,period:$('reportPeriod').value,student:$('reportStudent').value,situation:$('reportSituation').value,difficulties:$('reportDifficulties').value,actions:$('reportActions').value,results:$('reportResults').value,next:$('reportNext').value};currentReport=`Durante o período ${d.period}, na turma ${d.clazz}${d.student?`, com atenção ao(à) estudante ${d.student}`:''}, observou-se o seguinte: ${d.situation}\n\nAs principais dificuldades identificadas foram: ${d.difficulties||'não foram registradas dificuldades específicas'}.\n\nAs ações pedagógicas realizadas incluíram: ${d.actions||'acompanhamento contínuo e orientações em sala'}.\n\nQuanto aos resultados, percebeu-se: ${d.results||'a necessidade de continuidade do acompanhamento'}.\n\nComo encaminhamentos para o próximo período, recomenda-se: ${d.next||'manter o acompanhamento pedagógico e reavaliar as estratégias adotadas'}.`; $('reportPreview').innerHTML=`${headerHtml()}<div class="paper-title"><h2>${esc(d.type)}</h2><p>Turma: ${esc(d.clazz)} • Período: ${esc(d.period)}</p></div><div class="report-text">${esc(currentReport)}</div><div style="margin-top:70px;display:grid;grid-template-columns:1fr 1fr;gap:35px"><div class="line">Data:</div><div class="line">Assinatura:</div></div>`;$('reportResult').classList.remove('hidden');$('reportResult').scrollIntoView({behavior:'smooth'})};
-$('reportPdf').onclick=()=>makePdf('reportPreview','relatorio-ac.pdf');$('newReport').onclick=()=>{$('reportResult').classList.add('hidden');$('reportForm').reset()};
+$('reportPdf').onclick=e=>makePdf('reportPreview','relatorio-ac.pdf',e);$('newReport').onclick=()=>{$('reportResult').classList.add('hidden');$('reportForm').reset()};
 
 function syncActivityOptions(){
   const coloring=$('activityMode').value==='coloring';
