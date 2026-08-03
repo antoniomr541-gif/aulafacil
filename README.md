@@ -10,3 +10,10 @@ Inclui login obrigatório com Supabase, cadastro, recuperação de senha, perfil
 - `OPENAI_MODEL` (opcional; padrão `gpt-5-mini`)
 
 Depois de adicionar as variáveis, faça um novo deploy.
+
+## Correção V4
+- Saída estruturada por JSON Schema.
+- Validação de questões objetivas, discursivas e mistas.
+- Gabarito real com alternativa correta ou resposta esperada.
+- Nova tentativa automática quando a IA devolve formato inválido.
+- Removido o modo demonstração silencioso: erros da API agora são exibidos.
