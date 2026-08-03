@@ -430,3 +430,22 @@ export default async function handler(req, res) {
     });
   }
 }
+
+
+// CORRECAO ILUSTRACOES CONTEXTO V7
+// Use o contexto da pergunta e resposta correta para escolher a ilustração.
+function chooseIllustrationByContext(question, answer){
+ const t = (String(question||'')+' '+String(answer||''))
+ .toLowerCase()
+ .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+ if(/arvore|pomar|floresta|planta/.test(t)) return 'tree';
+ if(/gibi|livro|leitura|texto|caderno|estudar/.test(t)) return 'book';
+ if(/bola|futebol|jogo|esporte|quadra/.test(t)) return 'ball';
+ if(/dinheiro|comprar|preco|loja|moeda/.test(t)) return 'coin';
+ if(/festa|convidado|pessoas|alunos|turma/.test(t)) return 'people';
+ if(/mapa|estado|brasil|cidade|geografia/.test(t)) return 'map';
+ if(/animal|cachorro|gato|peixe/.test(t)) return 'animal';
+
+ return 'book';
+}
