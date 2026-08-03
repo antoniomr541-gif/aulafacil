@@ -42,7 +42,63 @@ function validateClientActivity(a,p){
   return a;
 }
 
-$('activityForm').onsubmit=async e=>{e.preventDefault();if(!profile.name||!profile.school)return openProfile();const p={activityMode:$('activityMode').value,subject:$('subject').value,grade:$('grade').value,topic:$('topic').value.trim(),quantity:Number($('quantity').value),difficulty:$('difficulty').value,questionType:$('questionType').value,printStyle:$('printStyle').value,illustrations:$('illustrations').value,autism:$('autism').value,extraInstructions:$('extra').value.trim()};$('generateBtn').disabled=true;$('generateBtn').textContent='Gerando...';try{const r=await fetch('/api/generate-activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Erro ao gerar atividade.');currentActivity=validateClientActivity(data,p);renderActivity()}catch(error){console.error(error);alert(error.message||'Não foi possível gerar a atividade. Tente novamente.')}finally{$('generateBtn').disabled=false;$('generateBtn').textContent='Gerar atividade'}};
+
+function clientWantsIllustrations(value){
+  const v=String(value||'').trim().toLowerCase();
+  return !['','none','no','nao','não','sem'].includes(v);
+}
+
+function chooseClientIllustration(question,subject,topic,index){
+  const source=String(`${question?.prompt||''} ${subject||''} ${topic||''}`)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'');
+
+  const rules=[
+    ['apple',['maca','fruta','alimentacao']],
+    ['flower',['flor','planta','jardim']],
+    ['sun',['sol','calor','verao','dia']],
+    ['cloud',['nuvem','chuva','clima','tempo']],
+    ['fish',['peixe','mar','rio','oceano']],
+    ['butterfly',['borboleta','inseto']],
+    ['tree',['arvore','natureza','floresta','ambiente']],
+    ['house',['casa','familia','moradia']],
+    ['planet',['planeta','espaco','universo','sistema solar']],
+    ['heart',['amor','amizade','respeito']],
+    ['triangle',['triangulo']],
+    ['square',['quadrado']],
+    ['circle',['circulo','redondo']],
+    ['ball',['bola','futebol','esporte']],
+    ['book',['portugues','leitura','texto','pronome','vogal','alfabeto','historia']],
+    ['pencil',['escrita','escrever','escola','atividade']]
+  ];
+
+  for(const [kind,words] of rules){
+    if(words.some(word=>source.includes(word)))return kind;
+  }
+
+  return ['book','pencil','star','circle'][index%4];
+}
+
+function ensureClientIllustrations(activity,params){
+  if(!activity||!Array.isArray(activity.questions))return activity;
+  if(!clientWantsIllustrations(params?.illustrations))return activity;
+
+  activity.questions.forEach((question,index)=>{
+    if(!question.illustration||!question.illustration.kind){
+      question.illustration={
+        kind:chooseClientIllustration(question,params?.subject,params?.topic,index),
+        count:1,
+        label:'',
+        caption:''
+      };
+    }
+  });
+
+  return activity;
+}
+
+$('activityForm').onsubmit=async e=>{e.preventDefault();if(!profile.name||!profile.school)return openProfile();const p={activityMode:$('activityMode').value,subject:$('subject').value,grade:$('grade').value,topic:$('topic').value.trim(),quantity:Number($('quantity').value),difficulty:$('difficulty').value,questionType:$('questionType').value,printStyle:$('printStyle').value,illustrations:$('illustrations').value,autism:$('autism').value,extraInstructions:$('extra').value.trim()};$('generateBtn').disabled=true;$('generateBtn').textContent='Gerando...';try{const r=await fetch('/api/generate-activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Erro ao gerar atividade.');currentActivity=ensureClientIllustrations(validateClientActivity(data,p),p);renderActivity()}catch(error){console.error(error);alert(error.message||'Não foi possível gerar a atividade. Tente novamente.')}finally{$('generateBtn').disabled=false;$('generateBtn').textContent='Gerar atividade'}};
 function iconMarkup(kind,x,y,s,filled=false,label=''){
   const stroke='#222', fill=filled?'#eee':'white', sw=Math.max(2,s*.035);
   const common=`stroke="${stroke}" stroke-width="${sw}" fill="${fill}" stroke-linecap="round" stroke-linejoin="round"`;
