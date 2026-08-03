@@ -1,4 +1,5 @@
-const OBJECTIVE_FORBIDDEN = /\b(explique|justifique|comente|descreva|discorra|fale sobre)\b/i;
+const OBJECTIVE_FORBIDDEN = /\b(explique|justifique|comente|descreva|discorra|fale sobre|registre|escreva|responda)\b/i;
+const GENERIC_ANSWER = /resposta coerente|resposta pessoal|resposta adequada|qualquer resposta|de acordo com o aluno|de acordo com o tema|informação correta|informação verdadeira|conforme (o )?conteúdo|resposta possível sem exemplo/i;
 
 function normalize(value = '') {
   return String(value).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -86,33 +87,8 @@ function createLocalActivity(request) {
       `Resultado correto: ${q.options['ABCD'.indexOf(q.correctOption)]}. O aluno pode apresentar cálculo, decomposição ou outra estratégia correta.`
     ));
   } else {
-    const safeTopic = String(request.topic || 'o tema informado').trim();
-    const safeSubject = String(request.subject || 'a matéria').trim();
-
-    obj = Array.from({ length: 30 }, (_, i) => {
-      const correct = `Uma informação correta diretamente relacionada a ${safeTopic}`;
-      const options = [
-        correct,
-        `Uma informação de outro conteúdo de ${safeSubject}`,
-        `Uma afirmação que contradiz o tema ${safeTopic}`,
-        `Uma alternativa sem relação com ${safeTopic}`
-      ];
-      const shift = i % 4;
-      const rotated = options.slice(shift).concat(options.slice(0, shift));
-      const correctOption = 'ABCD'[rotated.indexOf(correct)];
-      return objective(
-        `Assinale a alternativa que está diretamente relacionada ao tema “${safeTopic}”.`,
-        rotated,
-        correctOption
-      );
-    });
-
-    disc = Array.from({ length: 30 }, (_, i) => discursive(
-      `Registre uma informação correta estudada sobre “${safeTopic}”.`,
-      `A resposta deve apresentar uma informação verdadeira, específica e relacionada ao conteúdo “${safeTopic}”, conforme o que foi trabalhado pelo professor em ${safeSubject}.`
-    ));
+    throw new Error('Este tema precisa da IA Gemini para gerar questões e gabaritos específicos. Configure GEMINI_API_KEY no Vercel.');
   }
-
   let questions;
   if (type === 'objetiva') questions = Array.from({ length: quantity }, (_, i) => ({ ...obj[i % obj.length] }));
   else if (type === 'discursiva') questions = Array.from({ length: quantity }, (_, i) => ({ ...disc[i % disc.length] }));
@@ -153,7 +129,7 @@ function validateActivity(activity, request) {
     } else if (q.type === 'discursive') {
       q.options = [];
       q.correctOption = '';
-      if (!q.expectedAnswer || normalize(q.expectedAnswer).includes('resposta coerente')) throw new Error(`A questão ${index + 1} não possui resposta esperada específica.`);
+      if (!q.expectedAnswer || GENERIC_ANSWER.test(q.expectedAnswer)) throw new Error(`A questão ${index + 1} não possui resposta esperada específica e verificável.`);
       q.answer = q.expectedAnswer;
     } else throw new Error(`A questão ${index + 1} possui tipo inválido.`);
   });
@@ -178,7 +154,7 @@ function buildPrompt(request, correction = '') {
       ? 'Todas as questões devem ser discursivas e sem alternativas. Cada expectedAnswer deve trazer a resposta correta, específica e completa, nunca uma frase genérica.'
       : 'Misture questões objetivas e discursivas. As objetivas devem ter quatro alternativas e uma correta. As discursivas devem ter resposta esperada específica.';
 
-  return `Crie uma atividade escolar em português do Brasil.\n\nDADOS OBRIGATÓRIOS\n- Matéria: ${request.subject}\n- Ano escolar: ${request.grade}\n- Tema: ${request.topic}\n- Quantidade exata: ${request.quantity}\n- Dificuldade: ${request.difficulty}\n- Tipo: ${request.questionType}\n\nREGRAS OBRIGATÓRIAS\n- ${typeRules}\n- Respeite exatamente o ano escolar informado.\n- Não entregue respostas vagas, como “resposta coerente”, “resposta pessoal” ou “de acordo com o aluno”.\n- Toda resposta do gabarito deve ser verificável e diretamente relacionada à questão.\n- Evite questões repetidas.\n- Em objective: options tem 4 textos; correctOption é A, B, C ou D; expectedAnswer é vazio.\n- Em discursive: options é []; correctOption é vazio; expectedAnswer contém uma resposta-modelo específica.\n- visualSupport deve ser uma sugestão breve ou vazio.\n- Orientações extras: ${request.extraInstructions || 'nenhuma'}.\n${correction ? `CORRIJA A TENTATIVA ANTERIOR: ${correction}` : ''}`;
+  return `Crie uma atividade escolar em português do Brasil.\n\nDADOS OBRIGATÓRIOS\n- Matéria: ${request.subject}\n- Ano escolar: ${request.grade}\n- Tema: ${request.topic}\n- Quantidade exata: ${request.quantity}\n- Dificuldade: ${request.difficulty}\n- Tipo: ${request.questionType}\n\nREGRAS OBRIGATÓRIAS\n- ${typeRules}\n- Respeite exatamente o ano escolar informado.\n- Não entregue respostas vagas, como “resposta coerente”, “resposta pessoal” ou “de acordo com o aluno”.\n- Toda resposta do gabarito deve ser verificável e diretamente relacionada à questão.\n- Evite questões repetidas.\n- Em objective: options tem 4 textos; correctOption é A, B, C ou D; expectedAnswer é vazio.\n- Em discursive: options é []; correctOption é vazio; expectedAnswer contém uma resposta-modelo específica.\n- Ilustrações solicitadas: ${request.illustrations || 'none'}.\n- Se ilustrações for diferente de none, visualSupport deve conter APENAS um destes códigos: book, numbers, apple, globe, leaf, animal, shapes, people, speech, science. Escolha o código mais relacionado à questão.\n- Se ilustrações for none, visualSupport deve ser vazio.\n- A presença de ilustração NÃO muda o tipo da questão: se o tipo pedido for objetiva, continue gerando somente questões objetivas com alternativas.\n- Orientações extras: ${request.extraInstructions || 'nenhuma'}.\n${correction ? `CORRIJA A TENTATIVA ANTERIOR: ${correction}` : ''}`;
 }
 
 const responseSchema = {
@@ -215,7 +191,7 @@ export default async function handler(req, res) {
     let lastError = '';
 
     if (key) {
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         try { return res.status(200).json(validateActivity(await callGemini(key, data, lastError), data)); }
         catch (error) { lastError = error.message; }
       }
