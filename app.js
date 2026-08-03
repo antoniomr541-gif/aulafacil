@@ -73,6 +73,14 @@ function illustrationSvg(spec,large=false){
   slots.forEach((el,i)=>{const col=i%cols,row=Math.floor(i/cols),x=cellW*(col+.5),y=cellH*(row+.5)+15;parts+=iconMarkup(el.kind,x,y,size,false,el.label&&el.instance===0?el.label:'')});
   const title=esc(spec.title||spec.label||'');return `<div class="illustration-card"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${title}">${parts}</svg>${spec.caption?`<div style="text-align:center;font-size:12px">${esc(spec.caption)}</div>`:''}</div>`;
 }
+
+function cleanAnswer(answer){
+  let value=String(answer||'').trim();
+  value=value.replace(/^([A-D])\)\s*\1\)\s*/i,'$1) ');
+  value=value.replace(/^([A-D])[\.\-:]\s*\1[\.\-:]\s*/i,'$1) ');
+  return value;
+}
+
 function renderActivity(){
   const a=currentActivity;
   if(a.mode==='coloring'){
@@ -82,7 +90,7 @@ function renderActivity(){
   }else{
     const q=a.questions.map(x=>`<div class="question question-with-art"><strong>${x.number}. ${esc(x.prompt)}</strong>${x.illustration&&x.illustration.kind?illustrationSvg(x.illustration):''}${x.options?`<div class="options">${x.options.map((o,i)=>`<span>(${String.fromCharCode(65+i)}) ${esc(o)}</span>`).join('')}</div>`:'<div class="answer-lines"></div>'}</div>`).join('');
     $('studentPreview').innerHTML=`${headerHtml()}<div class="student-fields"><div class="line">Aluno(a):</div><div class="line">Data:</div></div><div class="paper-title"><h2>${esc(a.title)}</h2><p>${esc(a.grade)} • ${esc(a.difficulty||'')}</p></div><p><strong>Orientações:</strong> ${esc(a.instructions)}</p>${q}`;
-    $('teacherPreview').innerHTML=`${headerHtml('<span class="exclusive">USO EXCLUSIVO DO PROFESSOR</span>')}<div class="paper-title"><h2>Gabarito — ${esc(a.title)}</h2></div>${a.questions.map(x=>`<p><strong>${x.number}.</strong> ${esc(x.answer)}</p>`).join('')}`;
+    $('teacherPreview').innerHTML=`${headerHtml('<span class="exclusive">USO EXCLUSIVO DO PROFESSOR</span>')}<div class="paper-title"><h2>Gabarito — ${esc(a.title)}</h2></div>${a.questions.map(x=>`<p><strong>${x.number}.</strong> ${esc(cleanAnswer(x.answer))}</p>`).join('')}`;
   }
   $('activityResult').classList.remove('hidden');$('activityResult').scrollIntoView({behavior:'smooth'});
 }
