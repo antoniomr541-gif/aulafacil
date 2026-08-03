@@ -227,3 +227,17 @@ function syncActivityOptions(){
 $('activityMode').onchange=syncActivityOptions;$('grade').onchange=syncActivityOptions;$('subject').onchange=syncActivityOptions;
 syncActivityOptions();
 init();
+
+
+// CORRECAO PLANO SEMANAL V7
+function askAddToWeeklyPlan(activity){
+ const ok = confirm("Deseja adicionar esta atividade ao Plano Semanal?");
+ if(ok){
+   const day = prompt("Informe o dia da semana:");
+   const type = confirm("É atividade para casa?") ? "casa" : "sala";
+   const plan = JSON.parse(localStorage.getItem("weeklyPlan") || "[]");
+   plan.push({day,type,activity,date:new Date().toISOString()});
+   localStorage.setItem("weeklyPlan", JSON.stringify(plan));
+   alert("Atividade adicionada ao Plano Semanal!");
+ }
+}
