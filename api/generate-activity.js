@@ -327,7 +327,6 @@ async function callGeminiModel(key, model, request, correction = '') {
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema,
-        temperature: 0.3,
         maxOutputTokens: 8192
       }
     })
@@ -364,8 +363,9 @@ async function callGemini(key, request, previousError = '') {
   const configured = String(process.env.GEMINI_MODEL || '').trim();
   const models = [...new Set([
     configured,
-    'gemini-2.5-flash',
-    'gemini-2.0-flash'
+    'gemini-3.5-flash-lite',
+    'gemini-3.6-flash',
+    'gemini-flash-latest'
   ].filter(Boolean))];
 
   const errors = [];
@@ -377,7 +377,11 @@ async function callGemini(key, request, previousError = '') {
     }
   }
 
-  throw new Error(errors.join(' | '));
+  const details = errors.join(' | ');
+  if (/429|quota|rate limit|resource_exhausted/i.test(details)) {
+    throw new Error('A cota gratuita da chave Gemini foi atingida. Crie uma nova chave em outro projeto do Google AI Studio ou ative o faturamento. Detalhes: ' + details);
+  }
+  throw new Error(details);
 }
 
 export default async function handler(req, res) {
