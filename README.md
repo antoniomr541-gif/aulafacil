@@ -1,12 +1,15 @@
-# AtivaEdu
+# AtivaEdu Funcional
 
-Arquivos prontos para publicação no GitHub, Vercel ou Netlify.
+Versão pronta para publicar no GitHub, Netlify ou Vercel.
 
-## Arquivos
-- `index.html`: novo painel inicial responsivo.
-- `login.html`: tela de login da versão anterior, mantida no pacote.
+Funciona:
+- cadastro e login;
+- criação de atividades;
+- questões objetivas, discursivas e mistas;
+- gabarito;
+- histórico;
+- exclusão;
+- impressão e PDF;
+- opção TEA/TDAH.
 
-## Publicação
-Envie os arquivos para a raiz do repositório. A plataforma abrirá automaticamente o `index.html`.
-
-O botão "Criar atividade" aponta para `criar-atividade.html`. Quando esse arquivo já existir no projeto, mantenha-o na mesma pasta.
+Observação: nesta versão inicial, os dados ficam no navegador usando localStorage.

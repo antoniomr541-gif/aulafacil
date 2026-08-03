@@ -1,64 +1,14 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AtivaEdu - Login</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#eef5ff}
-.container{display:flex;min-height:100vh}
-.left{flex:1;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;padding:50px;display:flex;flex-direction:column;justify-content:center}
-.left h1{font-size:46px;margin:0 0 10px}
-.left h2{font-size:28px;margin:0 0 20px}
-.left ul{padding-left:20px;font-size:18px;line-height:2}
-.emoji{font-size:110px;text-align:center;margin:20px 0}
-.right{width:420px;max-width:100%;background:#fff;display:flex;align-items:center;justify-content:center;padding:30px}
-.card{width:100%;max-width:340px}
-.logo{font-size:30px;font-weight:bold;color:#2563eb;text-align:center}
-p{text-align:center;color:#666}
-input{width:100%;padding:14px;margin:10px 0;border:1px solid #d1d5db;border-radius:12px}
-button{width:100%;padding:15px;border:none;border-radius:12px;background:#10b981;color:#fff;font-size:17px;font-weight:bold;cursor:pointer}
-a{text-decoration:none;color:#2563eb;font-weight:bold}
-.small{text-align:center;margin-top:18px}
-.footer{text-align:center;color:#888;font-size:13px;margin-top:20px}
-@media(max-width:900px){
-.container{flex-direction:column}
-.left{padding:35px}
-.right{width:100%}
-.left h1{font-size:34px}
-.left h2{font-size:22px}
-}
-</style>
-</head>
-<body>
-<div class="container">
-<div class="left">
-<h1>📚 AtivaEdu</h1>
-<h2>Crie atividades escolares em menos de 1 minuto</h2>
-<div class="emoji">👩‍🏫📄✏️</div>
-<ul>
-<li>✅ Atividades prontas para imprimir</li>
-<li>🎨 Com ou sem ilustrações</li>
-<li>🧩 Atividades adaptadas para TEA</li>
-<li>📄 Questões objetivas e discursivas</li>
-<li>📊 Relatórios de atividades</li>
-<li>💾 Tudo salvo automaticamente</li>
-</ul>
-</div>
-<div class="right">
-<div class="card">
-<div class="logo">Bem-vindo!</div>
-<p>Entre para continuar criando atividades com IA.</p>
-<input type="email" placeholder="E-mail">
-<input type="password" placeholder="Senha">
-<label><input type="checkbox" style="width:auto"> Lembrar de mim</label>
-<br><br>
-<button>Entrar</button>
-<div class="small">Não possui uma conta?<br><a href="#">Criar conta gratuitamente</a></div>
-<div class="footer">⭐ Mais de 10.000 atividades criadas por professores.</div>
-</div>
-</div>
-</div>
-</body>
-</html>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AtivaEdu — Entrar</title><link rel="stylesheet" href="styles.css"></head><body>
+<div class="auth-shell"><section class="auth-left"><h1>📖 AtivaEdu</h1><p>Crie atividades, provas e materiais adaptados em poucos minutos.</p><p>✓ Login individual<br>✓ Gabarito<br>✓ Histórico<br>✓ Impressão em PDF</p></section>
+<section class="auth-right"><div class="auth-card"><div class="brand"><div class="brand-icon">📖</div><div><h1>AtivaEdu</h1><small>Sistema de Atividades</small></div></div>
+<div class="auth-tabs"><button id="tabLogin" class="active">Entrar</button><button id="tabRegister">Cadastrar</button></div>
+<form id="loginForm"><div class="field"><label>E-mail</label><input id="loginEmail" type="email" required></div><div class="field" style="margin-top:12px"><label>Senha</label><input id="loginPassword" type="password" required></div><button class="btn-primary" style="width:100%;margin-top:18px">Entrar</button></form>
+<form id="registerForm" class="hidden"><div class="field"><label>Nome</label><input id="regName" required></div><div class="field" style="margin-top:12px"><label>E-mail</label><input id="regEmail" type="email" required></div><div class="field" style="margin-top:12px"><label>Senha</label><input id="regPassword" type="password" minlength="4" required></div><button class="btn-primary" style="width:100%;margin-top:18px">Criar conta</button></form>
+<p class="muted" style="font-size:12px;margin-top:18px">Os dados ficam salvos neste aparelho.</p></div></section></div>
+<script src="app.js"></script><script>
+if(Store.getSession())location.href='index.html';
+tabLogin.onclick=()=>{tabLogin.classList.add('active');tabRegister.classList.remove('active');loginForm.classList.remove('hidden');registerForm.classList.add('hidden')};
+tabRegister.onclick=()=>{tabRegister.classList.add('active');tabLogin.classList.remove('active');registerForm.classList.remove('hidden');loginForm.classList.add('hidden')};
+registerForm.onsubmit=e=>{e.preventDefault();const u=Store.getUsers(),email=regEmail.value.trim().toLowerCase();if(u.some(x=>x.email===email))return toast('E-mail já cadastrado.');const n={id:Date.now(),name:regName.value.trim(),email,password:regPassword.value};u.push(n);Store.saveUsers(u);Store.setSession({id:n.id,name:n.name,email:n.email});location.href='index.html'};
+loginForm.onsubmit=e=>{e.preventDefault();const u=Store.getUsers().find(x=>x.email===loginEmail.value.trim().toLowerCase()&&x.password===loginPassword.value);if(!u)return toast('E-mail ou senha incorretos.');Store.setSession({id:u.id,name:u.name,email:u.email});location.href='index.html'};
+</script></body></html>

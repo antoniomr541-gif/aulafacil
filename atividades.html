@@ -1,0 +1,14 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minhas atividades</title><link rel="stylesheet" href="styles.css"></head><body>
+<div class="mobile-nav"><div class="brand"><div class="brand-icon">📖</div><h1>AtivaEdu</h1></div><a class="btn-primary" href="criar-atividade.html">Nova</a></div>
+<div class="app">
+<aside class="sidebar">
+<div class="brand"><div class="brand-icon">📖</div><div><h1>AtivaEdu</h1><small>Sistema de Atividades</small></div></div>
+<nav><a href="index.html">⌂ Início</a><a href="criar-atividade.html">✍ Criar atividade</a><a href="atividades.html">▣ Minhas atividades</a></nav>
+<div class="sidebar-bottom"><button class="logout" onclick="logout()">Sair</button></div>
+</aside>
+<main><div class="topbar"><div><h2>Minhas atividades</h2><p>Materiais salvos neste aparelho.</p></div><a class="btn-primary" href="criar-atividade.html">⊕ Nova atividade</a></div><div id="list" class="activities"></div></main></div>
+<script src="app.js"></script><script>
+const user=requireAuth();
+function render(){const items=Store.getActivities().filter(a=>a.userId===user.id);list.innerHTML=items.length?items.map(a=>'<div class="activity-row"><div><strong>'+escapeHtml(a.title)+'</strong><small>'+escapeHtml(a.grade)+' • '+escapeHtml(a.subject)+' • '+new Date(a.createdAt).toLocaleString('pt-BR')+'</small></div><div class="actions"><a class="btn-secondary" href="atividade.html?id='+a.id+'">Abrir</a><button class="btn-danger" onclick="removeItem('+a.id+')">Excluir</button></div></div>').join(''):'<div class="panel empty">Nenhuma atividade criada.</div>'}
+function removeItem(id){if(!confirm('Excluir esta atividade?'))return;Store.saveActivities(Store.getActivities().filter(a=>a.id!==id));render()}render();
+</script></body></html>

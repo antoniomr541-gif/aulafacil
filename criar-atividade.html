@@ -1,0 +1,26 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Criar atividade</title><link rel="stylesheet" href="styles.css"></head><body>
+<div class="mobile-nav"><div class="brand"><div class="brand-icon">📖</div><h1>AtivaEdu</h1></div><a class="btn-secondary" href="index.html">Início</a></div>
+<div class="app">
+<aside class="sidebar">
+<div class="brand"><div class="brand-icon">📖</div><div><h1>AtivaEdu</h1><small>Sistema de Atividades</small></div></div>
+<nav><a href="index.html">⌂ Início</a><a href="criar-atividade.html">✍ Criar atividade</a><a href="atividades.html">▣ Minhas atividades</a></nav>
+<div class="sidebar-bottom"><button class="logout" onclick="logout()">Sair</button></div>
+</aside>
+<main><div class="topbar"><div><h2>Criar atividade</h2><p>Preencha as opções abaixo.</p></div></div>
+<form id="form" class="panel"><div class="form-grid">
+<div class="field"><label>Título</label><input id="title" required placeholder="Ex.: Revisão de Matemática"></div>
+<div class="field"><label>Ano/Série</label><select id="grade" required><option value="">Selecione</option><option>1º ano</option><option>2º ano</option><option>3º ano</option><option>4º ano</option><option>5º ano</option><option>6º ano</option><option>7º ano</option><option>8º ano</option><option>9º ano</option></select></div>
+<div class="field"><label>Disciplina</label><select id="subject" required><option value="">Selecione</option><option>Matemática</option><option>Língua Portuguesa</option><option>Ciências</option><option>História</option><option>Geografia</option></select></div>
+<div class="field"><label>Tema</label><input id="topic" required placeholder="Ex.: adição e subtração"></div>
+<div class="field"><label>Quantidade</label><input id="quantity" type="number" min="5" max="30" value="10"></div>
+<div class="field"><label>Tipo</label><select id="questionType"><option value="objetiva">Objetivas</option><option value="discursiva">Discursivas</option><option value="mista">Mistas</option></select></div>
+<div class="field full"><label>Instruções adicionais</label><textarea id="instructions" placeholder="Ex.: questões fáceis e linguagem simples"></textarea></div>
+<div class="field full"><div class="switches"><label class="switch-card"><input id="illustrated" type="checkbox">Com ilustrações</label><label class="switch-card"><input id="adapted" type="checkbox">Adaptada para TEA/TDAH</label><label class="switch-card"><input id="blackWhite" type="checkbox" checked>Preto e branco</label></div></div>
+<div class="field full"><button class="btn-primary">Gerar atividade</button></div></div></form></main></div>
+<script src="app.js"></script><script>
+const user=requireAuth();if(qs('adaptada'))adapted.checked=true;
+function makeMath(topic,n,type){const arr=[];for(let i=1;i<=n;i++){let a=5+i,b=2+(i%7),op='+',ans=a+b;const t=topic.toLowerCase();if(t.includes('subtr')){a+=10;op='−';ans=a-b}else if(t.includes('multip')){op='×';ans=a*b}
+if(type==='discursiva'||(type==='mista'&&i%2===0))arr.push({prompt:'Resolva: '+a+' '+op+' '+b+' =',answer:String(ans),type:'discursiva'});else{const opts=[ans,ans+1,Math.max(0,ans-1),ans+2].sort(()=>Math.random()-.5);arr.push({prompt:'Calcule: '+a+' '+op+' '+b+' =',options:opts.map(String),answer:String(ans),type:'objetiva'})}}return arr}
+function generic(subject,topic,n,type){const arr=[];for(let i=1;i<=n;i++){if(type==='discursiva'||(type==='mista'&&i%2===0))arr.push({prompt:'Explique com suas palavras um aspecto importante de "'+topic+'".',answer:'A resposta deve apresentar explicação correta relacionada ao tema "'+topic+'".',type:'discursiva'});else arr.push({prompt:'Qual alternativa está diretamente relacionada ao tema "'+topic+'"?',options:[topic,subject,'Educação Física','Nenhuma das alternativas'],answer:topic,type:'objetiva'})}return arr}
+form.onsubmit=e=>{e.preventDefault();const n=Number(quantity.value),sub=subject.value,tp=topic.value,qt=questionType.value;const questions=sub==='Matemática'?makeMath(tp,n,qt):generic(sub,tp,n,qt);const item={id:Date.now(),userId:user.id,title:title.value.trim(),grade:grade.value,subject:sub,topic:tp,questionType:qt,illustrated:illustrated.checked,adapted:adapted.checked,blackWhite:blackWhite.checked,instructions:instructions.value.trim(),questions,createdAt:new Date().toISOString()};const items=Store.getActivities();items.unshift(item);Store.saveActivities(items);location.href='atividade.html?id='+item.id};
+</script></body></html>
