@@ -1,31 +1,22 @@
-AULAFÁCIL — CORREÇÃO FINAL
+AULAFÁCIL — CORREÇÃO DAS RESPOSTAS GENÉRICAS
 
-Arquivos corrigidos:
-- index.html
-- app.js
-- api/generate-activity.js
+Substitua estes arquivos no GitHub:
+1. index.html
+2. app.js
+3. api/generate-activity.js
 
-Correções incluídas:
-- nova tela de login responsiva;
-- letras das alternativas sem duplicação;
-- gabarito sem duplicação;
-- ilustrações geradas quando a opção estiver ativada;
-- ilustrações também no modo local/fallback;
-- compatibilidade com celular e desktop.
+Correções:
+- não entrega mais perguntas genéricas sobre matéria, tema e ano;
+- tenta mais de um modelo do Gemini;
+- mantém alternativas e gabarito sem letras duplicadas;
+- mantém as ilustrações;
+- se a IA falhar, mostra o erro verdadeiro em vez de criar uma atividade ruim.
 
-COMO ATUALIZAR PELO GITHUB NO CELULAR
+IMPORTANTE:
+No Vercel, confirme em Settings > Environment Variables:
+GEMINI_API_KEY = sua chave válida
 
-1. Substitua o conteúdo de index.html pelo novo index.html.
-2. Substitua o conteúdo de app.js pelo novo app.js.
-3. Abra a pasta api.
-4. Substitua api/generate-activity.js pelo novo arquivo.
-5. Faça Commit changes em cada arquivo.
-6. Aguarde o Vercel concluir o deploy.
-7. Abra o site em uma aba anônima ou limpe o cache.
-8. Gere uma atividade NOVA escolhendo a opção com ilustrações.
-
-Não altere:
-- styles.css
-- package.json
-- vercel.json
-- demais arquivos da pasta api
+Após o commit:
+- aguarde o deploy;
+- abra o site em aba anônima;
+- gere uma atividade nova.
