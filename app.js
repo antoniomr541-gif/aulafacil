@@ -1,265 +1,29 @@
-const form = document.getElementById('activityForm');
-const resultSection = document.getElementById('resultSection');
-const generatorSection = document.getElementById('generatorSection');
-const studentPreview = document.getElementById('studentPreview');
-const teacherPreview = document.getElementById('teacherPreview');
-const generateBtn = document.getElementById('generateBtn');
-const btnLabel = generateBtn.querySelector('.btn-label');
-const btnLoading = generateBtn.querySelector('.btn-loading');
-const historyModal = document.getElementById('historyModal');
-let currentActivity = null;
-
-const escapeHtml = (value = '') => String(value)
-  .replaceAll('&', '&amp;')
-  .replaceAll('<', '&lt;')
-  .replaceAll('>', '&gt;')
-  .replaceAll('"', '&quot;')
-  .replaceAll("'", '&#039;');
-
-function formPayload() {
-  return {
-    subject: document.getElementById('subject').value,
-    grade: document.getElementById('grade').value,
-    topic: document.getElementById('topic').value.trim(),
-    quantity: Number(document.getElementById('quantity').value),
-    difficulty: document.getElementById('difficulty').value,
-    questionType: document.getElementById('questionType').value,
-    printStyle: document.getElementById('printStyle').value,
-    extraInstructions: document.getElementById('extraInstructions').value.trim()
-  };
-}
-
-function setLoading(isLoading) {
-  generateBtn.disabled = isLoading;
-  btnLabel.hidden = isLoading;
-  btnLoading.hidden = !isLoading;
-}
-
-async function generateActivity(payload) {
-  try {
-    const response = await fetch('/api/generate-activity', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) throw new Error('API indisponível');
-    return await response.json();
-  } catch (error) {
-    return createDemoActivity(payload);
-  }
-}
-
-function createDemoActivity(payload) {
-  const questions = [];
-  const topic = payload.topic.toLowerCase();
-
-  for (let i = 1; i <= payload.quantity; i++) {
-    let prompt;
-    let answer;
-    let options = null;
-
-    if (payload.subject === 'Matemática') {
-      const a = 2 + i;
-      const b = 3 + (i % 7);
-      if (topic.includes('multiplica')) {
-        prompt = `Resolva: ${a} × ${b} =`;
-        answer = String(a * b);
-      } else if (topic.includes('subtra')) {
-        prompt = `Calcule: ${a * 10} − ${b} =`;
-        answer = String(a * 10 - b);
-      } else {
-        prompt = `Calcule: ${a * 5} + ${b} =`;
-        answer = String(a * 5 + b);
-      }
-    } else {
-      prompt = `Questão ${i} sobre ${payload.topic}: explique com suas palavras um ponto importante do tema.`;
-      answer = `Resposta esperada: explicação coerente e adequada ao ${payload.grade} sobre ${payload.topic}.`;
-    }
-
-    if (payload.questionType === 'Objetiva' || (payload.questionType === 'Mista' && i % 2 === 0)) {
-      const correct = answer;
-      options = [correct, `${Number(correct) + 2 || 'Alternativa B'}`, `${Number(correct) + 5 || 'Alternativa C'}`, `${Number(correct) - 1 || 'Alternativa D'}`];
-      if (payload.subject !== 'Matemática') options = ['Alternativa correta', 'Alternativa incorreta', 'Outra possibilidade', 'Nenhuma das anteriores'];
-    }
-
-    questions.push({ number: i, prompt, answer, options });
-  }
-
-  return {
-    title: `Atividade de ${payload.subject} — ${payload.topic}`,
-    instructions: `Leia com atenção e responda às questões. Nível: ${payload.difficulty}.`,
-    grade: payload.grade,
-    subject: payload.subject,
-    topic: payload.topic,
-    questions,
-    generatedAt: new Date().toISOString(),
-    demo: true
-  };
-}
-
-function renderActivity(activity) {
-  const questionsHtml = activity.questions.map(q => {
-    const options = q.options ? `<div class="options">${q.options.map((opt, idx) => `<span>(${String.fromCharCode(65 + idx)}) ${escapeHtml(opt)}</span>`).join('')}</div>` : '';
-    const lines = q.options ? '' : `<div class="answer-lines"><div class="answer-line"></div><div class="answer-line"></div></div>`;
-    return `<div class="question"><strong>${q.number}. ${escapeHtml(q.prompt)}</strong>${options}${lines}</div>`;
-  }).join('');
-
-  studentPreview.innerHTML = `
-    <div class="paper-header">
-      <h1>${escapeHtml(activity.title)}</h1>
-      <p>${escapeHtml(activity.grade)} • ${escapeHtml(activity.subject)}</p>
-    </div>
-    <div class="student-meta">
-      <div class="meta-line">Aluno(a):</div>
-      <div class="meta-line">Turma:</div>
-      <div class="meta-line">Data:</div>
-    </div>
-    <p class="instructions"><strong>Orientações:</strong> ${escapeHtml(activity.instructions)}</p>
-    ${questionsHtml}
-  `;
-
-  const answerHtml = activity.questions.map(q => `<div class="answer-key-item"><strong>${q.number}.</strong> ${escapeHtml(q.answer)}</div>`).join('');
-  teacherPreview.innerHTML = `
-    <div class="paper-header">
-      <div class="teacher-badge">USO EXCLUSIVO DO PROFESSOR</div>
-      <h1>Gabarito — ${escapeHtml(activity.title)}</h1>
-      <p>${escapeHtml(activity.grade)} • ${escapeHtml(activity.subject)}</p>
-    </div>
-    <div class="answer-key">${answerHtml}</div>
-  `;
-
-  resultSection.classList.remove('hidden');
-  resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function saveHistory(activity, payload) {
-  const history = JSON.parse(localStorage.getItem('aulafacil_history') || '[]');
-  history.unshift({ id: crypto.randomUUID(), activity, payload, savedAt: new Date().toISOString() });
-  localStorage.setItem('aulafacil_history', JSON.stringify(history.slice(0, 20)));
-}
-
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const payload = formPayload();
-  if (!payload.topic) return;
-  setLoading(true);
-  try {
-    currentActivity = await generateActivity(payload);
-    renderActivity(currentActivity);
-    saveHistory(currentActivity, payload);
-  } finally {
-    setLoading(false);
-  }
-});
-
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(item => item.classList.remove('active'));
-    tab.classList.add('active');
-    const showTeacher = tab.dataset.tab === 'teacher';
-    studentPreview.classList.toggle('hidden', showTeacher);
-    teacherPreview.classList.toggle('hidden', !showTeacher);
-  });
-});
-
-function wrapText(doc, text, maxWidth) {
-  return doc.splitTextToSize(String(text), maxWidth);
-}
-
-function downloadPdf(mode) {
-  if (!currentActivity) return;
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const margin = 16;
-  const width = 210 - margin * 2;
-  let y = 18;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  const title = mode === 'student' ? currentActivity.title : `Gabarito — ${currentActivity.title}`;
-  doc.text(wrapText(doc, title, width), 105, y, { align: 'center' });
-  y += 12;
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${currentActivity.grade} • ${currentActivity.subject}`, 105, y, { align: 'center' });
-  y += 9;
-
-  if (mode === 'student') {
-    doc.line(margin, y, 194, y); y += 10;
-    doc.text('Aluno(a): _______________________________', margin, y);
-    doc.text('Turma: __________', 128, y);
-    doc.text('Data: ___/___/____', 163, y);
-    y += 10;
-    doc.setFont('helvetica', 'bold'); doc.text('Orientações:', margin, y);
-    doc.setFont('helvetica', 'normal');
-    const inst = wrapText(doc, currentActivity.instructions, width - 25);
-    doc.text(inst, margin + 24, y);
-    y += Math.max(10, inst.length * 5 + 4);
-  } else {
-    doc.setFillColor(20, 20, 20); doc.rect(62, y - 5, 86, 8, 'F');
-    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.text('USO EXCLUSIVO DO PROFESSOR', 105, y, {align:'center'});
-    doc.setTextColor(0,0,0); y += 12;
-  }
-
-  currentActivity.questions.forEach((q) => {
-    const body = mode === 'student' ? `${q.number}. ${q.prompt}` : `${q.number}. ${q.answer}`;
-    const lines = wrapText(doc, body, width);
-    const needed = lines.length * 5 + (mode === 'student' && !q.options ? 15 : 8);
-    if (y + needed > 285) { doc.addPage(); y = 18; }
-    doc.setFont('helvetica', mode === 'student' ? 'bold' : 'normal');
-    doc.text(lines, margin, y);
-    y += lines.length * 5 + 2;
-    if (mode === 'student' && q.options) {
-      doc.setFont('helvetica','normal');
-      q.options.forEach((opt, idx) => { doc.text(`(${String.fromCharCode(65+idx)}) ${opt}`, margin + 4, y); y += 5; });
-      y += 3;
-    } else if (mode === 'student') {
-      doc.line(margin, y + 4, 194, y + 4);
-      doc.line(margin, y + 10, 194, y + 10);
-      y += 16;
-    } else {
-      y += 5;
-    }
-  });
-
-  const safeTopic = currentActivity.topic.replace(/[^a-zA-Z0-9À-ÿ_-]+/g, '-').toLowerCase();
-  doc.save(mode === 'student' ? `atividade-${safeTopic}.pdf` : `gabarito-${safeTopic}.pdf`);
-}
-
-document.getElementById('downloadStudentBtn').addEventListener('click', () => downloadPdf('student'));
-document.getElementById('downloadTeacherBtn').addEventListener('click', () => downloadPdf('teacher'));
-document.getElementById('editBtn').addEventListener('click', () => generatorSection.scrollIntoView({ behavior: 'smooth' }));
-document.getElementById('regenerateBtn').addEventListener('click', () => form.requestSubmit());
-
-document.getElementById('historyBtn').addEventListener('click', () => {
-  renderHistory();
-  historyModal.classList.remove('hidden');
-});
-document.getElementById('closeHistoryBtn').addEventListener('click', () => historyModal.classList.add('hidden'));
-historyModal.addEventListener('click', (e) => { if (e.target === historyModal) historyModal.classList.add('hidden'); });
-
-function renderHistory() {
-  const list = document.getElementById('historyList');
-  const history = JSON.parse(localStorage.getItem('aulafacil_history') || '[]');
-  if (!history.length) {
-    list.innerHTML = '<div class="empty-state">Nenhuma atividade salva ainda.</div>';
-    return;
-  }
-  list.innerHTML = history.map(item => `
-    <div class="history-item">
-      <div>
-        <h3>${escapeHtml(item.activity.topic)}</h3>
-        <p>${escapeHtml(item.activity.subject)} • ${escapeHtml(item.activity.grade)} • ${new Date(item.savedAt).toLocaleDateString('pt-BR')}</p>
-      </div>
-      <button data-id="${item.id}">Abrir</button>
-    </div>
-  `).join('');
-  list.querySelectorAll('button').forEach(button => button.addEventListener('click', () => {
-    const item = history.find(entry => entry.id === button.dataset.id);
-    if (!item) return;
-    currentActivity = item.activity;
-    renderActivity(currentActivity);
-    historyModal.classList.add('hidden');
-  }));
-}
+let supabaseClient=null,currentUser=null,currentActivity=null,currentReport=null,profile={name:'',school:'',logo:''};
+const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function showView(name){['login','register','forgot','reset'].forEach(v=>$(v+'Panel').classList.toggle('hidden',v!==name));$('authMessage').classList.add('hidden')}
+function msg(text){$('authMessage').textContent=text;$('authMessage').classList.remove('hidden')}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+async function init(){try{const c=await fetch('/api/config').then(r=>r.json());if(!c.supabaseUrl||!c.supabaseAnonKey)throw 0;supabaseClient=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey);supabaseClient.auth.onAuthStateChange((e,s)=>{if(e==='PASSWORD_RECOVERY')showView('reset');else updateSession(s?.user||null)});const {data}=await supabaseClient.auth.getSession();updateSession(data.session?.user||null)}catch{msg('Configure SUPABASE_URL e SUPABASE_ANON_KEY no Vercel.')}}
+function key(){return `aulafacil_profile_${currentUser?.id||'none'}`}
+function updateSession(user){currentUser=user;if(!user){$('authScreen').classList.remove('hidden');$('app').classList.add('hidden');return}$('authScreen').classList.add('hidden');$('app').classList.remove('hidden');profile=JSON.parse(localStorage.getItem(key())||'{}');if(!profile.name)profile.name=user.user_metadata?.full_name||'';refreshProfile();if(!profile.school)setTimeout(()=>openProfile(),200)}
+function refreshProfile(){$('welcomeName').textContent=profile.name||'Professor(a)';$('summarySchool').textContent=profile.school||'Configure seu perfil';$('profileName').value=profile.name||'';$('profileSchool').value=profile.school||'';['summaryLogo','logoPreview'].forEach(id=>{const el=$(id);if(profile.logo){el.src=profile.logo;el.style.display='block'}else el.style.display='none'})}
+$('loginForm').onsubmit=async e=>{e.preventDefault();const {error}=await supabaseClient.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});if(error)msg('E-mail ou senha incorretos.')};
+$('registerForm').onsubmit=async e=>{e.preventDefault();if($('registerPassword').value!==$('registerConfirm').value)return msg('As senhas não são iguais.');const {data,error}=await supabaseClient.auth.signUp({email:$('registerEmail').value.trim(),password:$('registerPassword').value,options:{data:{full_name:$('registerName').value.trim()},emailRedirectTo:location.origin}});if(error)return msg(error.message);if(!data.session){showView('login');msg('Conta criada. Confirme seu e-mail para entrar.')}};
+$('forgotForm').onsubmit=async e=>{e.preventDefault();const {error}=await supabaseClient.auth.resetPasswordForEmail($('forgotEmail').value.trim(),{redirectTo:location.origin});msg(error?error.message:'Link enviado para seu e-mail.')};
+$('resetForm').onsubmit=async e=>{e.preventDefault();if($('resetPassword').value!==$('resetConfirm').value)return msg('As senhas não são iguais.');const {error}=await supabaseClient.auth.updateUser({password:$('resetPassword').value});msg(error?error.message:'Senha alterada com sucesso.')};
+$('logoutBtn').onclick=()=>supabaseClient.auth.signOut();
+function openProfile(){$('profileModal').classList.remove('hidden');refreshProfile()} $('profileBtn').onclick=openProfile;$('closeProfile').onclick=()=>{$('profileModal').classList.add('hidden')};
+$('profileLogo').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>1200000)return alert('Escolha uma imagem com até 1,2 MB.');const r=new FileReader();r.onload=()=>{profile.logo=r.result;$('logoPreview').src=r.result;$('logoPreview').style.display='block'};r.readAsDataURL(f)};
+$('profileForm').onsubmit=e=>{e.preventDefault();profile.name=$('profileName').value.trim();profile.school=$('profileSchool').value.trim();localStorage.setItem(key(),JSON.stringify(profile));refreshProfile();$('profileModal').classList.add('hidden')};
+document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-page]').forEach(x=>x.classList.toggle('active',x===b));$('activityPage').classList.toggle('hidden',b.dataset.page!=='activity');$('reportPage').classList.toggle('hidden',b.dataset.page!=='report')});
+function logoHtml(){return profile.logo?`<img src="${profile.logo}" alt="Logo">`:`<div style="width:72px;height:72px;border:1px dashed #aaa;display:grid;place-items:center;font-size:11px">LOGO</div>`}
+function headerHtml(extra=''){return `<div class="worksheet-head">${logoHtml()}<div><h2>${esc(profile.school||'Nome da escola')}</h2><p>Professor(a): <strong>${esc(profile.name||'Professor(a)')}</strong></p>${extra}</div></div>`}
+function demoActivity(p){let qs=[];for(let i=1;i<=p.quantity;i++){let prompt,answer,options=null;if(p.subject==='Matemática'){let a=i+3,b=(i%6)+2;prompt=`Resolva: ${a} × ${b} =`;answer=String(a*b)}else{prompt=`Explique um aspecto importante de ${p.topic}.`;answer=`Resposta coerente sobre ${p.topic}, adequada ao ${p.grade}.`}if(p.questionType==='Objetiva'||(p.questionType==='Mista'&&i%2===0))options=p.subject==='Matemática'?[answer,String(Number(answer)+2),String(Number(answer)+5),String(Math.max(0,Number(answer)-2))]:['Resposta correta','Alternativa incorreta','Outra alternativa','Nenhuma das anteriores'];qs.push({number:i,prompt,answer,options,visualSupport:p.illustrations==='none'?'':`Apoio visual sugerido: imagem simples relacionada a ${p.topic}.`})}return{title:`Atividade de ${p.subject} — ${p.topic}`,instructions:p.autism==='no'?'Leia com atenção e responda.':'Faça uma questão por vez. Leia o comando curto e marque ou escreva a resposta.',subject:p.subject,grade:p.grade,difficulty:p.difficulty,questions:qs}}
+$('activityForm').onsubmit=async e=>{e.preventDefault();if(!profile.name||!profile.school)return openProfile();const p={subject:$('subject').value,grade:$('grade').value,topic:$('topic').value.trim(),quantity:Number($('quantity').value),difficulty:$('difficulty').value,questionType:$('questionType').value,printStyle:$('printStyle').value,illustrations:$('illustrations').value,autism:$('autism').value,extraInstructions:$('extra').value.trim()};$('generateBtn').disabled=true;$('generateBtn').textContent='Gerando...';try{const r=await fetch('/api/generate-activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});if(!r.ok)throw 0;currentActivity=await r.json()}catch{currentActivity=demoActivity(p)}finally{$('generateBtn').disabled=false;$('generateBtn').textContent='Gerar atividade'}renderActivity()};
+function renderActivity(){const a=currentActivity;const q=a.questions.map(x=>`<div class="question"><strong>${x.number}. ${esc(x.prompt)}</strong>${x.visualSupport?`<div style="border:1px dashed #aaa;padding:10px;margin-top:8px;font-size:12px">${esc(x.visualSupport)}</div>`:''}${x.options?`<div class="options">${x.options.map((o,i)=>`<span>(${String.fromCharCode(65+i)}) ${esc(o)}</span>`).join('')}</div>`:'<div class="answer-lines"></div>'}</div>`).join('');$('studentPreview').innerHTML=`${headerHtml()}<div class="student-fields"><div class="line">Aluno(a):</div><div class="line">Data:</div></div><div class="paper-title"><h2>${esc(a.title)}</h2><p>${esc(a.grade)} • ${esc(a.difficulty||'')}</p></div><p><strong>Orientações:</strong> ${esc(a.instructions)}</p>${q}`;$('teacherPreview').innerHTML=`${headerHtml('<span class="exclusive">USO EXCLUSIVO DO PROFESSOR</span>')}<div class="paper-title"><h2>Gabarito — ${esc(a.title)}</h2></div>${a.questions.map(x=>`<p><strong>${x.number}.</strong> ${esc(x.answer)}</p>`).join('')}`;$('activityResult').classList.remove('hidden');$('activityResult').scrollIntoView({behavior:'smooth'})}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));$('studentPreview').classList.toggle('hidden',b.dataset.tab!=='student');$('teacherPreview').classList.toggle('hidden',b.dataset.tab!=='teacher')});
+function makePdf(elementId,file){const {jsPDF}=window.jspdf;const el=$(elementId);const doc=new jsPDF({unit:'pt',format:'a4'});doc.html(el,{callback:d=>d.save(file),x:25,y:25,width:545,windowWidth:794,html2canvas:{scale:.72,useCORS:true}})}
+$('studentPdf').onclick=()=>makePdf('studentPreview','atividade-aluno.pdf');$('teacherPdf').onclick=()=>makePdf('teacherPreview','gabarito-professor.pdf');$('newActivity').onclick=()=>{$('activityResult').classList.add('hidden');$('activityForm').reset();scrollTo({top:0,behavior:'smooth'})};
+$('reportForm').onsubmit=e=>{e.preventDefault();if(!profile.name||!profile.school)return openProfile();const d={type:$('reportType').value,clazz:$('reportClass').value,period:$('reportPeriod').value,student:$('reportStudent').value,situation:$('reportSituation').value,difficulties:$('reportDifficulties').value,actions:$('reportActions').value,results:$('reportResults').value,next:$('reportNext').value};currentReport=`Durante o período ${d.period}, na turma ${d.clazz}${d.student?`, com atenção ao(à) estudante ${d.student}`:''}, observou-se o seguinte: ${d.situation}\n\nAs principais dificuldades identificadas foram: ${d.difficulties||'não foram registradas dificuldades específicas'}.\n\nAs ações pedagógicas realizadas incluíram: ${d.actions||'acompanhamento contínuo e orientações em sala'}.\n\nQuanto aos resultados, percebeu-se: ${d.results||'a necessidade de continuidade do acompanhamento'}.\n\nComo encaminhamentos para o próximo período, recomenda-se: ${d.next||'manter o acompanhamento pedagógico e reavaliar as estratégias adotadas'}.`; $('reportPreview').innerHTML=`${headerHtml()}<div class="paper-title"><h2>${esc(d.type)}</h2><p>Turma: ${esc(d.clazz)} • Período: ${esc(d.period)}</p></div><div class="report-text">${esc(currentReport)}</div><div style="margin-top:70px;display:grid;grid-template-columns:1fr 1fr;gap:35px"><div class="line">Data:</div><div class="line">Assinatura:</div></div>`;$('reportResult').classList.remove('hidden');$('reportResult').scrollIntoView({behavior:'smooth'})};
+$('reportPdf').onclick=()=>makePdf('reportPreview','relatorio-ac.pdf');$('newReport').onclick=()=>{$('reportResult').classList.add('hidden');$('reportForm').reset()};
+init();
