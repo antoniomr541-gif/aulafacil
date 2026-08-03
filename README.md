@@ -1,19 +1,24 @@
-# AulaFácil V3 — Vercel
+# AulaFácil V6 — versão estável
 
-Inclui login obrigatório com Supabase, cadastro, recuperação de senha, perfil individual do professor, nome da escola e logo automáticos, atividade com ou sem ilustração, adaptação para estudante autista, gabarito separado e relatórios para AC.
+Versão corrigida para Vercel, Supabase e Gemini.
+
+## Correções principais
+
+- Não existe nenhuma referência à `OPENAI_API_KEY`.
+- O navegador mostra apenas a mensagem real devolvida pelo servidor.
+- Questões objetivas são validadas antes de aparecerem.
+- O gabarito das objetivas mostra a letra e o texto corretos.
+- Questões discursivas exigem resposta-modelo específica.
+- Respostas genéricas como “resposta coerente” são rejeitadas.
+- Se o Gemini falhar ou ainda não estiver configurado, há geração local real para:
+  - Português: pronomes;
+  - Matemática: adição, subtração e multiplicação.
 
 ## Variáveis no Vercel
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL` (opcional; padrão `gpt-5-mini`)
+- `GEMINI_API_KEY` — recomendada, com cota gratuita disponível conforme as regras do Google.
+- `GEMINI_MODEL` — opcional; padrão `gemini-2.5-flash`.
 
-Depois de adicionar as variáveis, faça um novo deploy.
-
-## Correção V4
-- Saída estruturada por JSON Schema.
-- Validação de questões objetivas, discursivas e mistas.
-- Gabarito real com alternativa correta ou resposta esperada.
-- Nova tentativa automática quando a IA devolve formato inválido.
-- Removido o modo demonstração silencioso: erros da API agora são exibidos.
+Após substituir os arquivos no GitHub, faça um novo deploy no Vercel sem reutilizar o cache anterior.
