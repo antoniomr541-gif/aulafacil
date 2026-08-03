@@ -1,17 +1,44 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AtivaEdu</title><link rel="stylesheet" href="styles.css"></head><body>
-<div class="mobile-nav"><div class="brand"><div class="brand-icon">📖</div><h1>AtivaEdu</h1></div><button class="btn-secondary" onclick="logout()">Sair</button></div>
-<div class="app">
-<aside class="sidebar">
-<div class="brand"><div class="brand-icon">📖</div><div><h1>AtivaEdu</h1><small>Sistema de Atividades</small></div></div>
-<nav><a href="index.html">⌂ Início</a><a href="criar-atividade.html">✍ Criar atividade</a><a href="atividades.html">▣ Minhas atividades</a></nav>
-<div class="sidebar-bottom"><button class="logout" onclick="logout()">Sair</button></div>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AtivaEdu 2.0</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+<aside>
+<h1>📚 AtivaEdu</h1>
+<a>🏠 Início</a>
+<a href="criar.html">✨ Criar atividade</a>
+<a>📂 Minhas atividades</a>
+<a>📝 Avaliações</a>
+<a>📅 Planos de aula</a>
+<a>🧩 Adaptar atividade</a>
+<a>📊 Relatórios</a>
+<a>⚙ Configurações</a>
 </aside>
-<main><div class="topbar"><div><h2 id="welcome">Olá!</h2><p>O que vamos criar hoje?</p></div><div class="avatar">👩🏽‍🏫</div></div>
-<section class="hero"><div><h3>Crie atividades <span>em menos de 2 minutos</span></h3><p>Escolha série, disciplina, tema e tipo. O sistema monta a atividade com gabarito e impressão.</p></div><a class="btn-primary" href="criar-atividade.html">⊕ Criar atividade</a></section>
-<section class="grid quick"><a class="card" href="criar-atividade.html"><h3>📋 Nova atividade</h3><p class="muted">Exercícios personalizados.</p></a><a class="card" href="criar-atividade.html?tipo=prova"><h3>📝 Gerar prova</h3><p class="muted">Avaliação rapidamente.</p></a><a class="card" href="criar-atividade.html?adaptada=1"><h3>🧩 Adaptar para TEA</h3><p class="muted">Linguagem mais direta.</p></a><a class="card" href="atividades.html"><h3>📂 Histórico</h3><p class="muted">Tudo que foi criado.</p></a></section>
-<section class="panel"><div class="result-head"><div><h3>Atividades recentes</h3><p class="muted">Seus últimos materiais.</p></div><a class="btn-secondary" href="atividades.html">Ver todas</a></div><div id="recent" class="activities"></div></section>
-</main></div><script src="app.js"></script><script>
-const user=requireAuth();if(user)welcome.textContent='Olá, '+user.name+'! 👋';
-const items=Store.getActivities().filter(a=>a.userId===user.id).slice(0,4);
-recent.innerHTML=items.length?items.map(a=>'<div class="activity-row"><div><strong>'+escapeHtml(a.title)+'</strong><small>'+escapeHtml(a.grade)+' • '+escapeHtml(a.subject)+' • '+new Date(a.createdAt).toLocaleDateString('pt-BR')+'</small></div><a class="btn-secondary" href="atividade.html?id='+a.id+'">Abrir</a></div>').join(''):'<div class="empty">Nenhuma atividade criada ainda.</div>';
-</script></body></html>
+
+<main>
+<header>
+<h2>Olá, Professora Ana 👋</h2>
+<span>⭐ 500 créditos</span>
+</header>
+
+<section class="hero">
+<h1>Crie atividades em poucos minutos</h1>
+<p>Atividades, provas, planos de aula e relatórios pedagógicos com inteligência artificial.</p>
+<button onclick="location.href='criar.html'">✨ Criar atividade</button>
+</section>
+
+<section class="cards">
+<div>📚 Todas as matérias<br><small>Português, Matemática, Ciências, História, Geografia, Artes e mais.</small></div>
+<div>🧩 Educação inclusiva<br><small>Adaptação para TEA, TDAH e dificuldades de aprendizagem.</small></div>
+<div>📊 Relatórios<br><small>Relatórios para professor e coordenação.</small></div>
+</section>
+
+</main>
+</div>
+</body>
+</html>

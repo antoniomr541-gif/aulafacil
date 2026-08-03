@@ -1,15 +1,14 @@
-# AtivaEdu Funcional
+# AtivaEdu 2.0
 
-Versão pronta para publicar no GitHub, Netlify ou Vercel.
+Plataforma educacional inspirada em ferramentas modernas de professores.
 
-Funciona:
-- cadastro e login;
-- criação de atividades;
-- questões objetivas, discursivas e mistas;
-- gabarito;
-- histórico;
-- exclusão;
-- impressão e PDF;
-- opção TEA/TDAH.
+Inclui a estrutura:
+- Dashboard do professor
+- Criador de atividades por etapas
+- Todas as principais matérias
+- Relatórios pedagógicos
+- Adaptação TEA/TDAH
+- Planos de aula
+- Histórico de atividades
 
-Observação: nesta versão inicial, os dados ficam no navegador usando localStorage.
+Próxima etapa: conexão com IA real (OpenAI/Gemini) e banco de dados.
