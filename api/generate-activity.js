@@ -13,6 +13,87 @@ function cleanOptionText(value = '') {
     .trim();
 }
 
+
+const ALLOWED_ILLUSTRATION_KINDS = new Set([
+  'apple','flower','sun','cloud','fish','butterfly','tree','house',
+  'book','pencil','planet','heart','triangle','square','circle','ball','star'
+]);
+
+function wantsIllustrations(request = {}) {
+  const value = normalize(request.illustrations || '');
+  return value && !['none','nao','não','sem','no'].includes(value);
+}
+
+function chooseIllustrationKind(text = '', subject = '', topic = '', index = 0) {
+  const source = normalize(`${text} ${subject} ${topic}`);
+
+  const rules = [
+    ['apple', ['maca','fruta','alimentacao','alimento']],
+    ['flower', ['flor','planta','jardim','primavera']],
+    ['sun', ['sol','dia','calor','verao','clima']],
+    ['cloud', ['nuvem','chuva','tempo','agua']],
+    ['fish', ['peixe','mar','oceano','rio','animal aquatico']],
+    ['butterfly', ['borboleta','inseto','metamorfose']],
+    ['tree', ['arvore','natureza','meio ambiente','floresta']],
+    ['house', ['casa','familia','moradia','bairro']],
+    ['book', ['livro','leitura','portugues','historia','texto','pronome']],
+    ['pencil', ['lapis','escrita','escrever','atividade','escola']],
+    ['planet', ['planeta','sistema solar','espaco','geografia','universo']],
+    ['heart', ['amor','amizade','respeito','sentimento']],
+    ['triangle', ['triangulo','geometria']],
+    ['square', ['quadrado','geometria']],
+    ['circle', ['circulo','geometria','roda']],
+    ['ball', ['bola','esporte','educacao fisica','futebol']]
+  ];
+
+  for (const [kind, words] of rules) {
+    if (words.some(word => source.includes(normalize(word)))) return kind;
+  }
+
+  const defaults = ['book','pencil','star','circle'];
+  return defaults[index % defaults.length];
+}
+
+function applyIllustrations(activity, request) {
+  if (!activity || !Array.isArray(activity.questions)) return activity;
+
+  const enabled = wantsIllustrations(request);
+  activity.questions.forEach((q, index) => {
+    if (!enabled) {
+      q.illustration = null;
+      return;
+    }
+
+    let kind = '';
+    const visual = q.visualSupport;
+
+    if (visual && typeof visual === 'object') {
+      kind = normalize(visual.kind || visual.type || '');
+    } else if (typeof visual === 'string') {
+      const firstWord = normalize(visual).split(/\s+/)[0];
+      if (ALLOWED_ILLUSTRATION_KINDS.has(firstWord)) kind = firstWord;
+    }
+
+    if (!ALLOWED_ILLUSTRATION_KINDS.has(kind)) {
+      kind = chooseIllustrationKind(
+        typeof visual === 'string' ? visual : q.prompt,
+        request.subject,
+        request.topic,
+        index
+      );
+    }
+
+    q.illustration = {
+      kind,
+      count: 1,
+      label: '',
+      caption: ''
+    };
+  });
+
+  return activity;
+}
+
 function normalizeQuestionType(value = '') {
   const v = normalize(value);
   if (v.includes('objet')) return 'objetiva';
@@ -210,7 +291,7 @@ function validateActivity(activity, request) {
   activity.subject = request.subject;
   activity.grade = request.grade;
   activity.difficulty = request.difficulty;
-  return activity;
+  return applyIllustrations(activity, request);
 }
 
 function buildPrompt(request, correction = '') {
@@ -221,7 +302,9 @@ function buildPrompt(request, correction = '') {
       ? 'Todas as questões devem ser discursivas e sem alternativas. Cada expectedAnswer deve trazer a resposta correta, específica e completa, nunca uma frase genérica.'
       : 'Misture questões objetivas e discursivas. As objetivas devem ter quatro alternativas e uma correta. As discursivas devem ter resposta esperada específica.';
 
-  return `Crie uma atividade escolar em português do Brasil.\n\nDADOS OBRIGATÓRIOS\n- Matéria: ${request.subject}\n- Ano escolar: ${request.grade}\n- Tema: ${request.topic}\n- Quantidade exata: ${request.quantity}\n- Dificuldade: ${request.difficulty}\n- Tipo: ${request.questionType}\n\nREGRAS OBRIGATÓRIAS\n- ${typeRules}\n- Respeite exatamente o ano escolar informado.\n- Não entregue respostas vagas, como “resposta coerente”, “resposta pessoal” ou “de acordo com o aluno”.\n- Toda resposta do gabarito deve ser verificável e diretamente relacionada à questão.\n- Evite questões repetidas.\n- Em objective: options tem 4 textos sem letras, números ou prefixos no início; não escreva A), B), C), D), (A), (B), (C) ou (D) dentro de options; correctOption é A, B, C ou D; expectedAnswer é vazio.\n- Em discursive: options é []; correctOption é vazio; expectedAnswer contém uma resposta-modelo específica.\n- visualSupport deve ser uma sugestão breve ou vazio.\n- Orientações extras: ${request.extraInstructions || 'nenhuma'}.\n${correction ? `CORRIJA A TENTATIVA ANTERIOR: ${correction}` : ''}`;
+  return `Crie uma atividade escolar em português do Brasil.\n\nDADOS OBRIGATÓRIOS\n- Matéria: ${request.subject}\n- Ano escolar: ${request.grade}\n- Tema: ${request.topic}\n- Quantidade exata: ${request.quantity}\n- Dificuldade: ${request.difficulty}\n- Tipo: ${request.questionType}\n\nREGRAS OBRIGATÓRIAS\n- ${typeRules}\n- Respeite exatamente o ano escolar informado.\n- Não entregue respostas vagas, como “resposta coerente”, “resposta pessoal” ou “de acordo com o aluno”.\n- Toda resposta do gabarito deve ser verificável e diretamente relacionada à questão.\n- Evite questões repetidas.\n- Em objective: options tem 4 textos sem letras, números ou prefixos no início; não escreva A), B), C), D), (A), (B), (C) ou (D) dentro de options; correctOption é A, B, C ou D; expectedAnswer é vazio.\n- Em discursive: options é []; correctOption é vazio; expectedAnswer contém uma resposta-modelo específica.\n- Ilustrações solicitadas: ${request.illustrations || 'none'}.
+- Quando as ilustrações estiverem ativadas, visualSupport deve conter APENAS um destes nomes: apple, flower, sun, cloud, fish, butterfly, tree, house, book, pencil, planet, heart, triangle, square, circle, ball ou star.
+- Escolha um desenho relacionado ao conteúdo de cada questão. Quando as ilustrações estiverem desativadas, visualSupport deve ser vazio.\n- Orientações extras: ${request.extraInstructions || 'nenhuma'}.\n${correction ? `CORRIJA A TENTATIVA ANTERIOR: ${correction}` : ''}`;
 }
 
 const responseSchema = {
