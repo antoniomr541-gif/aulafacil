@@ -22,3 +22,10 @@ Versão corrigida para Vercel, Supabase e Gemini.
 - `GEMINI_MODEL` — opcional; padrão `gemini-2.5-flash`.
 
 Após substituir os arquivos no GitHub, faça um novo deploy no Vercel sem reutilizar o cache anterior.
+
+
+## Atualização V8
+- Gabaritos genéricos são rejeitados.
+- Atividades objetivas permanecem objetivas mesmo com ilustrações.
+- Ilustrações agora aparecem como desenhos SVG reais no PDF e na prévia.
+- Temas sem banco local exigem Gemini para evitar respostas inventadas ou vagas.
