@@ -317,40 +317,112 @@ const responseSchema = {
   }
 };
 
-async function callGemini(key, request, correction = '') {
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+async function callGeminiModel(key, model, request, correction = '') {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-    contents: [{ role: 'user', parts: [{ text: buildPrompt(request, correction) }] }],
-    generationConfig: { responseMimeType: 'application/json', responseSchema, temperature: 0.35, maxOutputTokens: 8192 }
-  })});
-  if (!response.ok) throw new Error(`Gemini ${response.status}: ${(await response.text()).slice(0, 500)}`);
-  const output = await response.json();
-  const text = output?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
-  if (!text) throw new Error('O Gemini não retornou conteúdo.');
-  return JSON.parse(text.replace(/^```json\s*/i, '').replace(/\s*```$/, ''));
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: buildPrompt(request, correction) }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema,
+        temperature: 0.3,
+        maxOutputTokens: 8192
+      }
+    })
+  });
+
+  const raw = await response.text();
+  if (!response.ok) throw new Error(`${model} (${response.status}): ${raw.slice(0, 700)}`);
+
+  let output;
+  try { output = JSON.parse(raw); }
+  catch { throw new Error(`${model}: resposta inválida da API.`); }
+
+  const generated = output?.candidates?.[0]?.content?.parts
+    ?.map(part => part.text || '')
+    .join('')
+    .trim();
+
+  if (!generated) {
+    const reason = output?.candidates?.[0]?.finishReason || output?.promptFeedback?.blockReason || 'sem conteúdo';
+    throw new Error(`${model}: ${reason}.`);
+  }
+
+  const cleaned = generated
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+
+  try { return JSON.parse(cleaned); }
+  catch { throw new Error(`${model}: o conteúdo retornado não era um JSON válido.`); }
+}
+
+async function callGemini(key, request, previousError = '') {
+  const configured = String(process.env.GEMINI_MODEL || '').trim();
+  const models = [...new Set([
+    configured,
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
+  ].filter(Boolean))];
+
+  const errors = [];
+  for (const model of models) {
+    try {
+      return await callGeminiModel(key, model, request, previousError || errors.join(' | '));
+    } catch (error) {
+      errors.push(error.message);
+    }
+  }
+
+  throw new Error(errors.join(' | '));
 }
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' });
+
   try {
     const data = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    if (!data?.subject || !data?.grade || !data?.topic || !data?.quantity) return res.status(400).json({ error: 'Preencha todos os dados obrigatórios.' });
-    const key = process.env.GEMINI_API_KEY;
-    let lastError = '';
+    if (!data?.subject || !data?.grade || !data?.topic || !data?.quantity) {
+      return res.status(400).json({ error: 'Preencha todos os dados obrigatórios.' });
+    }
 
-    if (key) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try { return res.status(200).json(validateActivity(await callGemini(key, data, lastError), data)); }
-        catch (error) { lastError = error.message; }
+    const key = String(process.env.GEMINI_API_KEY || '').trim();
+
+    // Bancos locais de qualidade conhecidos continuam disponíveis.
+    const local = createLocalActivity(data);
+
+    if (!key) {
+      if (local) return res.status(200).json(validateActivity(local, data));
+      return res.status(500).json({
+        error: 'A chave GEMINI_API_KEY não está configurada no Vercel. Sem a chave, não é possível criar uma atividade específica para esse tema.'
+      });
+    }
+
+    let lastError = '';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const generated = await callGemini(key, data, lastError);
+        return res.status(200).json(validateActivity(generated, data));
+      } catch (error) {
+        lastError = error.message;
+        console.error(`Tentativa Gemini ${attempt + 1}:`, lastError);
       }
     }
 
-    const local = createLocalActivity(data) || createUniversalFallback(data);
-    return res.status(200).json(validateActivity(local, data));
+    // Nunca mais entrega perguntas genéricas sobre matéria, tema ou ano.
+    if (local) return res.status(200).json(validateActivity(local, data));
+
+    return res.status(502).json({
+      error: `A inteligência artificial não conseguiu gerar a atividade agora. Verifique a GEMINI_API_KEY e os logs do Vercel. Detalhe: ${lastError.slice(0, 500)}`
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Ocorreu um erro ao montar a atividade. Tente novamente.' });
+    return res.status(500).json({
+      error: error?.message || 'Ocorreu um erro ao montar a atividade.'
+    });
   }
 }
