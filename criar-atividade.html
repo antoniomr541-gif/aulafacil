@@ -19,8 +19,20 @@
 <div class="field full"><button class="btn-primary">Gerar atividade</button></div></div></form></main></div>
 <script src="app.js"></script><script>
 const user=requireAuth();if(qs('adaptada'))adapted.checked=true;
-function makeMath(topic,n,type){const arr=[];for(let i=1;i<=n;i++){let a=5+i,b=2+(i%7),op='+',ans=a+b;const t=topic.toLowerCase();if(t.includes('subtr')){a+=10;op='−';ans=a-b}else if(t.includes('multip')){op='×';ans=a*b}
-if(type==='discursiva'||(type==='mista'&&i%2===0))arr.push({prompt:'Resolva: '+a+' '+op+' '+b+' =',answer:String(ans),type:'discursiva'});else{const opts=[ans,ans+1,Math.max(0,ans-1),ans+2].sort(()=>Math.random()-.5);arr.push({prompt:'Calcule: '+a+' '+op+' '+b+' =',options:opts.map(String),answer:String(ans),type:'objetiva'})}}return arr}
-function generic(subject,topic,n,type){const arr=[];for(let i=1;i<=n;i++){if(type==='discursiva'||(type==='mista'&&i%2===0))arr.push({prompt:'Explique com suas palavras um aspecto importante de "'+topic+'".',answer:'A resposta deve apresentar explicação correta relacionada ao tema "'+topic+'".',type:'discursiva'});else arr.push({prompt:'Qual alternativa está diretamente relacionada ao tema "'+topic+'"?',options:[topic,subject,'Educação Física','Nenhuma das alternativas'],answer:topic,type:'objetiva'})}return arr}
-form.onsubmit=e=>{e.preventDefault();const n=Number(quantity.value),sub=subject.value,tp=topic.value,qt=questionType.value;const questions=sub==='Matemática'?makeMath(tp,n,qt):generic(sub,tp,n,qt);const item={id:Date.now(),userId:user.id,title:title.value.trim(),grade:grade.value,subject:sub,topic:tp,questionType:qt,illustrated:illustrated.checked,adapted:adapted.checked,blackWhite:blackWhite.checked,instructions:instructions.value.trim(),questions,createdAt:new Date().toISOString()};const items=Store.getActivities();items.unshift(item);Store.saveActivities(items);location.href='atividade.html?id='+item.id};
+form.onsubmit=async e=>{
+  e.preventDefault();
+  const button=form.querySelector('button[type="submit"],button.btn-primary');
+  const original=button.textContent;
+  button.disabled=true;button.textContent=illustrated.checked?'Gerando atividade e ilustração...':'Gerando atividade...';
+  try{
+    const payload={subject:subject.value,grade:grade.value,topic:topic.value.trim(),quantity:Number(quantity.value),questionType:questionType.value,illustrated:illustrated.checked,adapted:adapted.checked,blackWhite:blackWhite.checked,instructions:instructions.value.trim()};
+    const response=await fetch('/api/generate-activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const generated=await response.json();
+    if(!response.ok)throw new Error(generated.error||'Não foi possível gerar a atividade.');
+    const item={id:Date.now(),userId:user.id,title:title.value.trim()||generated.title,grade:payload.grade,subject:payload.subject,topic:payload.topic,questionType:payload.questionType,illustrated:payload.illustrated,adapted:payload.adapted,blackWhite:payload.blackWhite,instructions:payload.instructions,questions:generated.questions,illustration:generated.illustration,illustrationWarning:generated.illustrationWarning,createdAt:new Date().toISOString()};
+    const items=Store.getActivities();items.unshift(item);Store.saveActivities(items);
+    if(generated.illustrationWarning)toast('Atividade criada, mas a ilustração falhou.');
+    location.href='atividade.html?id='+item.id;
+  }catch(err){alert(err.message)}finally{button.disabled=false;button.textContent=original}
+};
 </script></body></html>

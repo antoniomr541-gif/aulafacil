@@ -1,6 +1,6 @@
 {
-  "name": "aulafacil-professores",
-  "version": "1.0.0",
+  "name": "ativaedu",
+  "version": "2.1.0",
   "private": true,
-  "type": "module"
+  "description": "Gerador de atividades escolares com ilustrações por IA"
 }

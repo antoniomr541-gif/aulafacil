@@ -1,15 +1,19 @@
-# AtivaEdu Funcional
+# AtivaEdu 2.1
 
-Versão pronta para publicar no GitHub, Netlify ou Vercel.
+Correções desta versão:
+- questões reais e variadas, sem repetir o tema como resposta;
+- validação automática de alternativas e gabaritos;
+- até 3 tentativas quando a IA retorna conteúdo inválido;
+- geração real de ilustração com `gpt-image-1`;
+- ilustração inserida na prévia e na impressão/PDF;
+- modo preto e branco para colorir e modo adaptado com baixa poluição visual.
 
-Funciona:
-- cadastro e login;
-- criação de atividades;
-- questões objetivas, discursivas e mistas;
-- gabarito;
-- histórico;
-- exclusão;
-- impressão e PDF;
-- opção TEA/TDAH.
+## Vercel
+1. Suba todos os arquivos para o repositório.
+2. Na Vercel, abra **Settings > Environment Variables**.
+3. Crie `OPENAI_API_KEY` com sua chave.
+4. Faça um novo deploy.
 
-Observação: nesta versão inicial, os dados ficam no navegador usando localStorage.
+Opcional:
+- `OPENAI_TEXT_MODEL` (padrão: `gpt-4.1-mini`)
+- `OPENAI_IMAGE_MODEL` (padrão: `gpt-image-1`)
