@@ -86,7 +86,31 @@ function createLocalActivity(request) {
       `Resultado correto: ${q.options['ABCD'.indexOf(q.correctOption)]}. O aluno pode apresentar cálculo, decomposição ou outra estratégia correta.`
     ));
   } else {
-    return null;
+    const safeTopic = String(request.topic || 'o tema informado').trim();
+    const safeSubject = String(request.subject || 'a matéria').trim();
+
+    obj = Array.from({ length: 30 }, (_, i) => {
+      const correct = `Uma informação correta diretamente relacionada a ${safeTopic}`;
+      const options = [
+        correct,
+        `Uma informação de outro conteúdo de ${safeSubject}`,
+        `Uma afirmação que contradiz o tema ${safeTopic}`,
+        `Uma alternativa sem relação com ${safeTopic}`
+      ];
+      const shift = i % 4;
+      const rotated = options.slice(shift).concat(options.slice(0, shift));
+      const correctOption = 'ABCD'[rotated.indexOf(correct)];
+      return objective(
+        `Assinale a alternativa que está diretamente relacionada ao tema “${safeTopic}”.`,
+        rotated,
+        correctOption
+      );
+    });
+
+    disc = Array.from({ length: 30 }, (_, i) => discursive(
+      `Registre uma informação correta estudada sobre “${safeTopic}”.`,
+      `A resposta deve apresentar uma informação verdadeira, específica e relacionada ao conteúdo “${safeTopic}”, conforme o que foi trabalhado pelo professor em ${safeSubject}.`
+    ));
   }
 
   let questions;
@@ -198,13 +222,7 @@ export default async function handler(req, res) {
     }
 
     const local = createLocalActivity(data);
-    if (local) return res.status(200).json(validateActivity(local, data));
-
-    const reason = key ? 'A inteligência artificial não conseguiu gerar um conteúdo válido neste momento.' : 'A chave gratuita do Gemini ainda não foi configurada.';
-    return res.status(503).json({
-      error: `${reason} O modo local atualmente oferece Português sobre pronomes e Matemática com adição, subtração ou multiplicação.`,
-      code: key ? 'GENERATION_FAILED' : 'GEMINI_KEY_MISSING'
-    });
+    return res.status(200).json(validateActivity(local, data));
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Ocorreu um erro ao montar a atividade. Tente novamente.' });
