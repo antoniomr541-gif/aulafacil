@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#5b4df7" />
+  <title>AulaFácil — Criador de Atividades</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">AF</div>
+        <div>
+          <strong>AulaFácil</strong>
+          <span>Atividades em poucos cliques</span>
+        </div>
+      </div>
+      <button class="ghost-btn" id="historyBtn" aria-label="Abrir histórico">Histórico</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <span class="eyebrow">PRIMEIRA VERSÃO</span>
+        <h1>Crie uma atividade pronta para imprimir</h1>
+        <p>Escolha as opções abaixo. O sistema organiza a atividade do aluno e gera um gabarito separado, exclusivo para o professor.</p>
+      </section>
+
+      <section class="card form-card" id="generatorSection">
+        <div class="section-heading">
+          <div class="step-badge">1</div>
+          <div>
+            <h2>Informações da atividade</h2>
+            <p>Leva menos de um minuto.</p>
+          </div>
+        </div>
+
+        <form id="activityForm">
+          <div class="form-grid">
+            <label>
+              <span>Matéria</span>
+              <select id="subject" required>
+                <option value="Matemática">Matemática</option>
+                <option value="Português">Português</option>
+                <option value="Ciências">Ciências</option>
+                <option value="História">História</option>
+                <option value="Geografia">Geografia</option>
+                <option value="Inglês">Inglês</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Ano escolar</span>
+              <select id="grade" required>
+                <option value="1º ano">1º ano</option>
+                <option value="2º ano">2º ano</option>
+                <option value="3º ano">3º ano</option>
+                <option value="4º ano">4º ano</option>
+                <option value="5º ano" selected>5º ano</option>
+                <option value="6º ano">6º ano</option>
+                <option value="7º ano">7º ano</option>
+                <option value="8º ano">8º ano</option>
+                <option value="9º ano">9º ano</option>
+              </select>
+            </label>
+
+            <label class="full-width">
+              <span>Tema</span>
+              <input id="topic" type="text" placeholder="Ex.: multiplicação, interpretação de texto..." required maxlength="120" />
+            </label>
+
+            <label>
+              <span>Quantidade</span>
+              <select id="quantity" required>
+                <option value="5">5 questões</option>
+                <option value="10" selected>10 questões</option>
+                <option value="15">15 questões</option>
+                <option value="20">20 questões</option>
+                <option value="30">30 questões</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Dificuldade</span>
+              <select id="difficulty" required>
+                <option value="Fácil">Fácil</option>
+                <option value="Média" selected>Média</option>
+                <option value="Difícil">Difícil</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Tipo de questão</span>
+              <select id="questionType" required>
+                <option value="Objetiva">Objetiva</option>
+                <option value="Dissertativa">Dissertativa</option>
+                <option value="Mista" selected>Mista</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Estilo de impressão</span>
+              <select id="printStyle" required>
+                <option value="Preto e branco" selected>Preto e branco</option>
+                <option value="Colorida">Colorida</option>
+              </select>
+            </label>
+
+            <label class="full-width">
+              <span>Orientação extra <small>(opcional)</small></span>
+              <textarea id="extraInstructions" rows="3" placeholder="Ex.: use contas simples, deixe espaço maior para responder..."></textarea>
+            </label>
+          </div>
+
+          <div class="info-box">
+            <span>🔒</span>
+            <p>O gabarito será criado em um arquivo separado e nunca aparecerá na atividade do aluno.</p>
+          </div>
+
+          <button type="submit" class="primary-btn" id="generateBtn">
+            <span class="btn-label">Gerar atividade</span>
+            <span class="btn-loading" hidden>Criando atividade...</span>
+          </button>
+        </form>
+      </section>
+
+      <section class="card result-card hidden" id="resultSection">
+        <div class="section-heading">
+          <div class="step-badge success">2</div>
+          <div>
+            <h2>Atividade pronta</h2>
+            <p>Confira antes de baixar.</p>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="student" role="tab">Atividade do aluno</button>
+          <button class="tab" data-tab="teacher" role="tab">Gabarito do professor</button>
+        </div>
+
+        <div class="preview-wrap">
+          <article class="paper" id="studentPreview"></article>
+          <article class="paper hidden teacher-paper" id="teacherPreview"></article>
+        </div>
+
+        <div class="action-grid">
+          <button class="secondary-btn" id="downloadStudentBtn">Baixar atividade</button>
+          <button class="secondary-btn" id="downloadTeacherBtn">Baixar gabarito</button>
+          <button class="outline-btn" id="editBtn">Editar opções</button>
+          <button class="outline-btn" id="regenerateBtn">Gerar outra versão</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="historyModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="historyTitle">Minhas atividades</h2>
+          <p>Salvas neste aparelho.</p>
+        </div>
+        <button class="icon-btn" id="closeHistoryBtn" aria-label="Fechar">×</button>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
