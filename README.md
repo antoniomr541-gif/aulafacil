@@ -1,11 +1,12 @@
-# AulaFácil V6 — Ilustrações e pintura
+# AtivaEdu
 
-## Novidades
-- Ilustrações vetoriais reais nas atividades quando solicitadas.
-- Educação Infantil sempre lúdica e ilustrada.
-- Novo modo **Atividade de pintura** com desenho grande para colorir.
-- Gabarito separado e respostas específicas.
+Arquivos prontos para publicação no GitHub, Vercel ou Netlify.
 
-## Vercel
-Variáveis: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GEMINI_API_KEY`.
-`GEMINI_MODEL` é opcional.
+## Arquivos
+- `index.html`: novo painel inicial responsivo.
+- `login.html`: tela de login da versão anterior, mantida no pacote.
+
+## Publicação
+Envie os arquivos para a raiz do repositório. A plataforma abrirá automaticamente o `index.html`.
+
+O botão "Criar atividade" aponta para `criar-atividade.html`. Quando esse arquivo já existir no projeto, mantenha-o na mesma pasta.
