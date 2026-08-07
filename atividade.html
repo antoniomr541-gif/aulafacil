@@ -1,14 +1,49 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Atividade</title><link rel="stylesheet" href="styles.css"></head><body>
 <div class="mobile-nav"><div class="brand"><div class="brand-icon">📖</div><h1>AtivaEdu</h1></div><a class="btn-secondary" href="atividades.html">Voltar</a></div>
 <div class="app">
-<aside class="sidebar">
-<div class="brand"><div class="brand-icon">📖</div><div><h1>AtivaEdu</h1><small>Sistema de Atividades</small></div></div>
-<nav><a href="index.html">⌂ Início</a><a href="criar-atividade.html">✍ Criar atividade</a><a href="atividades.html">▣ Minhas atividades</a><a href="criar-relatorio.html">🧒 Relatórios BNCC</a></nav>
-<div class="sidebar-bottom"><button class="logout" onclick="logout()">Sair</button></div>
-</aside>
+<aside class="sidebar"><div class="brand"><div class="brand-icon">📖</div><div><h1>AtivaEdu</h1><small>Sistema de Atividades</small></div></div><nav><a href="index.html">⌂ Início</a><a href="criar-atividade.html">✍ Criar atividade</a><a href="atividades.html">▣ Minhas atividades</a><a href="criar-relatorio.html">🧒 Relatórios BNCC</a></nav><div class="sidebar-bottom"><button class="logout" onclick="logout()">Sair</button></div></aside>
 <main><div class="topbar no-print"><div><h2>Visualizar atividade</h2><p>Revise antes de imprimir.</p></div><div class="actions"><button class="btn-secondary" onclick="toggleAnswers()">Mostrar/ocultar gabarito</button><button class="btn-primary" onclick="window.print()">Imprimir / Salvar PDF</button></div></div><section id="sheet" class="panel"></section></main></div>
 <script src="app.js"></script><script>
-const user=requireAuth(),item=Store.getActivities().find(a=>String(a.id)===qs('id')&&a.userId===user.id);let show=true;
-function render(){if(!item){sheet.innerHTML='<div class="empty">Atividade não encontrada.</div>';return}const illustration=item.illustration?'<figure class="activity-illustration"><img src="'+item.illustration+'" alt="Ilustração educativa sobre '+escapeHtml(item.topic)+'"></figure>':'';sheet.innerHTML='<div class="result-head"><div><h2>'+escapeHtml(item.title)+'</h2><p><strong>'+escapeHtml(item.subject)+'</strong> • '+escapeHtml(item.grade)+' • Tema: '+escapeHtml(item.topic)+'</p><p>Aluno(a): __________________________________ Data: ____/____/______</p></div><div>'+(item.adapted?'🧩 Adaptada':'')+'</div></div><hr style="border:0;border-top:1px solid #eee">'+illustration+item.questions.map((q,i)=>{const practical=['pintura','cobrir','ligar','circular','completar','recortar','coordenacao'].includes(q.type);const trace=q.type==='cobrir'||q.type==='coordenacao'?'<div class="trace-demo">· · · · · · · ·</div>':'';return '<div class="question '+(practical?'question-practical':'')+'"><strong>'+(i+1)+'. '+escapeHtml(q.prompt)+'</strong>'+(practical?'<span class="type-badge">'+escapeHtml(q.type.toUpperCase())+'</span>':'')+(q.options?'<div class="options">'+q.options.map((o,j)=>'<div>'+'ABCD'[j]+') '+escapeHtml(o)+'</div>').join('')+'</div>':trace+'<div class="work-space"></div>')+'<div class="answer '+(show?'':'hidden')+'"><strong>Orientação/Gabarito:</strong> '+escapeHtml(q.answer)+'</div></div>'}).join('')}
+const user=requireAuth(),item=Store.getActivities().find(a=>String(a.id)===qs('id')&&a.userId===user.id);let show=false;
+function E(s){return escapeHtml(String(s??''))}
+function iconSvg(name){
+  const common='fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"';
+  const map={
+    abelha:`<ellipse cx="50" cy="46" rx="23" ry="17" ${common}/><path d="M34 38h32M33 48h34M45 29l-6-12M55 29l6-12" ${common}/><ellipse cx="30" cy="31" rx="14" ry="10" ${common}/><ellipse cx="70" cy="31" rx="14" ry="10" ${common}/><circle cx="45" cy="43" r="2" fill="currentColor"/><circle cx="55" cy="43" r="2" fill="currentColor"/>`,
+    elefante:`<path d="M27 63V40c0-19 15-29 33-29 19 0 31 12 31 31v19c0 9-7 16-16 16h-6V57h10V42c0-10-7-18-18-18-10 0-19 7-19 18v23" ${common}/><path d="M41 41c-10-9-20-5-20 7 0 10 9 16 20 12M70 41c10-9 20-5 20 7 0 10-9 16-20 12M48 78v12M69 78v12" ${common}/><circle cx="58" cy="39" r="2" fill="currentColor"/>`,
+    igreja:`<path d="M20 88V43l30-21 30 21v45zM43 88V62h14v26M50 22V7M43 12h14" ${common}/><path d="M28 50h12M60 50h12" ${common}/>` ,
+    uva:`<path d="M55 19c-7-10-18-12-28-6 7 8 17 10 28 6zM54 18c7-8 15-10 23-9" ${common}/><circle cx="49" cy="37" r="10" ${common}/><circle cx="34" cy="49" r="10" ${common}/><circle cx="64" cy="49" r="10" ${common}/><circle cx="49" cy="61" r="10" ${common}/><circle cx="34" cy="73" r="10" ${common}/><circle cx="64" cy="73" r="10" ${common}/><circle cx="49" cy="85" r="10" ${common}/>` ,
+    maca:`<path d="M50 25c-20-12-34 5-31 28 3 25 18 39 31 31 13 8 28-6 31-31 3-23-11-40-31-28zM50 25c-2-10 4-17 13-20M55 15c8-5 15-4 21 2" ${common}/>` ,
+    bola:`<circle cx="50" cy="50" r="38" ${common}/><path d="M24 23c9 11 17 17 26 20 8-4 17-10 26-20M18 55c13-3 23-2 32 2 9-4 19-5 32-2M34 86c3-12 8-22 16-29 8 7 13 17 16 29" ${common}/>` ,
+    flor:`<circle cx="50" cy="49" r="10" ${common}/><circle cx="50" cy="24" r="14" ${common}/><circle cx="74" cy="43" r="14" ${common}/><circle cx="65" cy="70" r="14" ${common}/><circle cx="35" cy="70" r="14" ${common}/><circle cx="26" cy="43" r="14" ${common}/><path d="M50 80v17M50 91c-8-8-15-8-22-4M50 91c8-8 15-8 22-4" ${common}/>` ,
+    sol:`<circle cx="50" cy="50" r="24" ${common}/><path d="M50 5v14M50 81v14M5 50h14M81 50h14M18 18l10 10M72 72l10 10M82 18 72 28M28 72 18 82" ${common}/>` ,
+    casa:`<path d="M14 47 50 16l36 31v40H14zM38 87V62h24v25M27 52h12M61 52h12" ${common}/>` ,
+    arvore:`<path d="M45 88h14M48 88V60M57 88V60" ${common}/><path d="M50 12c-18 0-23 14-18 24-13 2-16 20-5 27 8 6 18 3 23-3 5 6 15 9 23 3 11-7 8-25-5-27 5-10 0-24-18-24z" ${common}/>` ,
+    peixe:`<path d="M20 50c16-21 40-25 60 0-20 25-44 22-60 0zM20 50 6 34v32z" ${common}/><circle cx="66" cy="45" r="2" fill="currentColor"/>`,
+    gato:`<path d="M26 35 22 12l19 11c6-3 12-3 18 0l19-11-4 23c8 8 10 21 5 33-6 15-21 22-29 22s-23-7-29-22c-5-12-3-25 5-33z" ${common}/><circle cx="39" cy="48" r="2" fill="currentColor"/><circle cx="61" cy="48" r="2" fill="currentColor"/><path d="M45 60h10M50 60v7M18 58h22M60 58h22" ${common}/>` ,
+    cachorro:`<path d="M30 26c12-10 28-10 40 0l12-9v29c6 18-4 42-32 42S12 64 18 46V17z" ${common}/><circle cx="39" cy="48" r="2" fill="currentColor"/><circle cx="61" cy="48" r="2" fill="currentColor"/><path d="M44 62c4 6 8 6 12 0" ${common}/>` ,
+    borboleta:`<path d="M50 34c-10-20-31-24-34-8-3 15 10 23 24 24-14 1-27 9-24 24 3 16 24 12 34-8 10 20 31 24 34 8 3-15-10-23-24-24 14-1 27-9 24-24-3-16-24-12-34 8z" ${common}/><path d="M50 29v42M45 25 38 14M55 25 62 14" ${common}/>` ,
+    estrela:`<path d="m50 8 11 27 29 2-22 19 7 29-25-15-25 15 7-29L10 37l29-2z" ${common}/>` ,
+    coracao:`<path d="M50 88 17 57C-7 31 22 6 50 31 78 6 107 31 83 57z" ${common}/>` ,
+    livro:`<path d="M12 20h30c8 0 8 6 8 12v56c-5-5-11-8-19-8H12zM88 20H58c-8 0-8 6-8 12v56c5-5 11-8 19-8h19z" ${common}/>` ,
+    lapis:`<path d="m18 76 8-24 45-45 18 18-45 45zM26 52l18 18M71 7l18 18" ${common}/>` ,
+    banana:`<path d="M20 30c8 29 31 49 66 36-13 22-37 31-58 15C12 69 8 45 20 30zM20 30l-6-9M86 66l8 3" ${common}/>` ,
+    carro:`<path d="M16 62h68l-8-25c-2-7-8-11-15-11H39c-7 0-13 4-15 11zM12 62v17h76V62M28 79v9M72 79v9" ${common}/><circle cx="28" cy="67" r="6" ${common}/><circle cx="72" cy="67" r="6" ${common}/>`
+  };
+  const body=map[name]||`<circle cx="50" cy="50" r="35" ${common}/><path d="M30 50h40M50 30v40" ${common}/>`;
+  return `<svg class="line-icon" viewBox="0 0 100 100" aria-hidden="true">${body}</svg>`;
+}
+function labelType(t){return({pintura:'PINTURA',cobrir:'COBRIR',ligar:'LIGAR',circular:'CIRCULAR',completar:'COMPLETAR',recortar:'RECORTAR E COLAR',coordenacao:'COORDENAÇÃO',objetiva:'OBJETIVA',discursiva:'DISCURSIVA'})[t]||String(t).toUpperCase()}
+function traceText(v){const text=(v.letter||v.number||v.word||'A').slice(0,12);return `<div class="trace-row">${Array.from({length:4},()=>`<span>${E(text)}</span>`).join('')}</div>`}
+function renderVisual(q){const v=q.visual||{};const kind=v.kind||q.type;
+  if(kind==='pintura') return `<div class="visual-box paint-box">${v.letter?`<div class="big-outline-letter">${E(v.letter)}</div>`:''}${iconSvg(v.icon||'estrela')}</div>`;
+  if(kind==='cobrir'||kind==='coordenacao') return `<div class="visual-box trace-box">${traceText(v)}<div class="motor-lines"><span></span><span></span><span></span></div></div>`;
+  if(kind==='ligar'){const pairs=(v.pairs||[]);if(!pairs.length)return `<div class="visual-box connect-box"><div class="connect-col"><div>A</div><div>E</div><div>I</div></div><div class="connect-col"><div>${iconSvg('abelha')}</div><div>${iconSvg('elefante')}</div><div>${iconSvg('igreja')}</div></div></div>`;return `<div class="visual-box connect-box"><div class="connect-col">${pairs.map(p=>`<div class="connect-item">${E(p.left||'')}</div>`).join('')}</div><div class="connect-col">${pairs.map(p=>`<div class="connect-item">${p.icon?iconSvg(p.icon):E(p.right||'')}</div>`).join('')}</div></div>`;}
+  if(kind==='circular'){const items=(v.items&&v.items.length?v.items:['A','O','E','O','I','U','O','A','E','O']);return `<div class="visual-box circle-grid">${items.map(x=>`<span>${E(x)}</span>`).join('')}</div>`;}
+  if(kind==='completar'){let word=(v.word||'UVA').toUpperCase(),idx=Math.min(Math.max(Number(v.missingIndex)||0,0),Math.max(word.length-1,0));let chars=[...word];if(chars.length)chars[idx]='_';return `<div class="visual-box complete-box"><div class="missing-word">${E(chars.join(' '))}</div>${v.icon?iconSvg(v.icon):''}</div>`;}
+  if(kind==='recortar'){const items=(v.items&&v.items.length?v.items:['A','E','I','O','U']);return `<div class="visual-box cut-grid">${items.map(x=>`<div class="cut-piece">✂ <strong>${E(x)}</strong></div>`).join('')}</div>`;}
+  return '';
+}
+function render(){if(!item){sheet.innerHTML='<div class="empty">Atividade não encontrada.</div>';return}sheet.innerHTML=`<div class="result-head"><div><h2>${E(item.title)}</h2><p><strong>${E(item.subject)}</strong> • ${E(item.grade)} • Tema: ${E(item.topic)}</p><p>Aluno(a): __________________________________ Data: ____/____/______</p></div><div>${item.adapted?'🧩 Adaptada':''}</div></div><hr style="border:0;border-top:1px solid #eee">${item.questions.map((q,i)=>`<div class="question child-question"><div class="question-title"><strong>${i+1}. ${E(q.prompt)}</strong><span class="type-pill">${labelType(q.type)}</span></div>${q.options?`<div class="options">${q.options.map((o,j)=>`<div>${'ABCD'[j]}) ${E(o)}</div>`).join('')}</div>`:renderVisual(q)||'<div class="writing-space"></div>'}<div class="answer ${show?'':'hidden'}"><strong>Gabarito:</strong> ${E(q.answer)}</div></div>`).join('')}`}
 function toggleAnswers(){show=!show;render()}render();
 </script></body></html>
