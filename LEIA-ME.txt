@@ -1,10 +1,15 @@
-ATIVAEDU — GEMINI GRATUITO
+ATIVAEDU — VERSÃO GEMINI GRATUITA + EDUCAÇÃO INFANTIL
 
-1. Suba este projeto na Vercel.
-2. Crie uma chave gratuita da Gemini API no Google AI Studio.
-3. Na Vercel: Settings > Environment Variables.
-4. Crie GEMINI_API_KEY e cole a chave.
-5. Faça Redeploy.
+NOVIDADES:
+- Educação Infantil G4 (4 anos) e G5 (5 anos) nas atividades.
+- Relatórios individuais alinhados à BNCC para G4/G5.
+- Ilustrações gratuitas locais em SVG: não usam API de imagem e não geram cobrança.
+- Texto continua usando Gemini por GEMINI_API_KEY.
 
-Não é necessário OPENAI_API_KEY.
-A geração de imagens por IA foi desativada para evitar custos.
+VERCEL:
+1. Configure GEMINI_API_KEY em Settings > Environment Variables.
+2. Opcional: GEMINI_TEXT_MODEL. O padrão do projeto é gemini-2.5-flash-lite.
+3. Faça um novo Deploy/Redeploy.
+
+OBSERVAÇÃO:
+A camada gratuita do provedor pode ter limites de uso. O sistema não chama a API paga de imagens.

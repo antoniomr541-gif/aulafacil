@@ -3,14 +3,14 @@
 <div class="app">
 <aside class="sidebar">
 <div class="brand"><div class="brand-icon">📖</div><div><h1>AtivaEdu</h1><small>Sistema de Atividades</small></div></div>
-<nav><a href="index.html">⌂ Início</a><a href="criar-atividade.html">✍ Criar atividade</a><a href="atividades.html">▣ Minhas atividades</a></nav>
+<nav><a href="index.html">⌂ Início</a><a href="criar-atividade.html">✍ Criar atividade</a><a href="atividades.html">▣ Minhas atividades</a><a href="criar-relatorio.html">🧒 Relatórios BNCC</a></nav>
 <div class="sidebar-bottom"><button class="logout" onclick="logout()">Sair</button></div>
 </aside>
 <main><div class="topbar"><div><h2>Criar atividade</h2><p>Preencha as opções abaixo.</p></div></div>
 <form id="form" class="panel"><div class="form-grid">
 <div class="field"><label>Título</label><input id="title" required placeholder="Ex.: Revisão de Matemática"></div>
-<div class="field"><label>Ano/Série</label><select id="grade" required><option value="">Selecione</option><option>1º ano</option><option>2º ano</option><option>3º ano</option><option>4º ano</option><option>5º ano</option><option>6º ano</option><option>7º ano</option><option>8º ano</option><option>9º ano</option></select></div>
-<div class="field"><label>Disciplina</label><select id="subject" required><option value="">Selecione</option><option>Matemática</option><option>Língua Portuguesa</option><option>Ciências</option><option>História</option><option>Geografia</option></select></div>
+<div class="field"><label>Ano/Série</label><select id="grade" required><option value="">Selecione</option><option>Educação Infantil - G4 (4 anos)</option><option>Educação Infantil - G5 (5 anos)</option><option>1º ano</option><option>2º ano</option><option>3º ano</option><option>4º ano</option><option>5º ano</option><option>6º ano</option><option>7º ano</option><option>8º ano</option><option>9º ano</option></select></div>
+<div class="field"><label>Disciplina</label><select id="subject" required><option value="">Selecione</option><option>Educação Infantil / Campos de Experiência</option><option>Matemática</option><option>Língua Portuguesa</option><option>Ciências</option><option>História</option><option>Geografia</option></select></div>
 <div class="field"><label>Tema</label><input id="topic" required placeholder="Ex.: adição e subtração"></div>
 <div class="field"><label>Quantidade</label><input id="quantity" type="number" min="5" max="30" value="10"></div>
 <div class="field"><label>Tipo</label><select id="questionType"><option value="objetiva">Objetivas</option><option value="discursiva">Discursivas</option><option value="mista">Mistas</option></select></div>
