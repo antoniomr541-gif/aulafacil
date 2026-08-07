@@ -1,11 +1,178 @@
-function json(res,status,body){res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.end(JSON.stringify(body))}
-function clean(v,max=300){return String(v??'').trim().slice(0,max)}
-function norm(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
-const SPECIAL=['pintura','cobrir','ligar','circular','completar','recortar','coordenacao','mista-infantil'];
-function validate(a,quantity){if(!a||!Array.isArray(a.questions)||a.questions.length!==quantity)throw new Error('A IA não retornou a quantidade correta de propostas.');const seen=new Set();a.questions.forEach((q,i)=>{q.type=clean(q.type,30)||'discursiva';q.prompt=clean(q.prompt,700);if(!q.prompt)throw new Error(`Proposta ${i+1} sem enunciado.`);const n=norm(q.prompt);if(seen.has(n))throw new Error('A IA repetiu propostas.');seen.add(n);if(q.type==='objetiva'){if(!Array.isArray(q.options)||q.options.length!==4)throw new Error(`Questão ${i+1} sem quatro alternativas.`);q.options=q.options.map(x=>clean(x,250));if(new Set(q.options.map(norm)).size!==4)throw new Error(`Questão ${i+1} possui alternativas repetidas.`);if(!['A','B','C','D'].includes(q.correctOption))throw new Error(`Gabarito inválido na questão ${i+1}.`);q.answer=`${q.correctOption}) ${q.options['ABCD'.indexOf(q.correctOption)]}`}else{q.options=null;q.correctOption=null;q.answer=clean(q.answer,800)||'Atividade prática acompanhada pelo(a) professor(a).'}});return a}
-function typeRule(t){const m={objetiva:'Crie questões objetivas com exatamente 4 alternativas e uma correta.',discursiva:'Crie propostas discursivas, com resposta-modelo específica.',mista:'Misture objetivas e discursivas.',pintura:'Crie propostas de PINTURA/COLORIR: comandos curtíssimos indicando claramente o que a criança deve colorir. Use elementos simples ligados ao tema.',cobrir:'Crie propostas de COBRIR/TRAÇAR: letras, números, formas ou palavras curtas que possam ser cobertas em pontilhado. Diga exatamente o elemento a traçar.',ligar:'Crie propostas de LIGAR/ASSOCIAR pares simples relacionados ao tema.',circular:'Crie propostas para CIRCULAR/MARCAR o elemento correto entre opções simples.',completar:'Crie propostas simples de COMPLETAR letras, números, sequências ou palavras adequadas à idade.',recortar:'Crie propostas simples de RECORTAR E COLAR, com instrução clara do que recortar e onde colar.',coordenacao:'Crie propostas de COORDENAÇÃO MOTORA e traçado: linhas, caminhos, formas, letras ou números.', 'mista-infantil':'Misture pintura, cobrir/traçar, ligar, circular, completar e coordenação motora. Evite prova tradicional.'};return m[t]||m.objetiva}
-function prompt(d){const ei=/Educação Infantil|G4|G5/i.test(d.grade);return `Você é professor(a) brasileiro(a) especialista em materiais pedagógicos. Crie uma atividade pronta para imprimir.\nAno/série: ${d.grade}\nDisciplina/campo: ${d.subject}\nTema: ${d.topic}\nQuantidade EXATA: ${d.quantity}\nTipo: ${d.questionType}\nNível: ${d.difficulty}\nInstruções extras: ${d.instructions||'Nenhuma'}\nAdaptação TEA/TDAH: ${d.adapted?'Sim: linguagem literal, uma ação por vez, baixa carga visual.':'Não'}\n\n${typeRule(d.questionType)}\n${ei?`EDUCAÇÃO INFANTIL: use linguagem extremamente curta e concreta; priorize brincar, explorar, pintar, traçar, ligar, observar, contar, oralidade e coordenação motora. Não exija leitura autônoma complexa. Considere os direitos de aprendizagem e Campos de Experiência da BNCC.`:''}\n${d.difficulty==='bem-infantil'?'ESTILO BEM INFANTIL: comandos de uma frase, vocabulário simples, pouco texto e tarefas visuais/manuais.':''}\nREGRAS: respeite a idade; não repita propostas; não invente conteúdo impróprio; para tipos práticos use type correspondente (pintura, cobrir, ligar, circular, completar, recortar, coordenacao); para objetiva use type objetiva; para resposta aberta use discursiva. Em propostas práticas, answer deve explicar brevemente o resultado esperado ao professor.\nResponda SOMENTE JSON válido: {"title":"título curto","instructions":"orientação curta","questions":[{"type":"pintura|cobrir|ligar|circular|completar|recortar|coordenacao|objetiva|discursiva","prompt":"...","options":null,"correctOption":null,"answer":"..."}]}`}
-async function generate(key,d){const model=process.env.GEMINI_TEXT_MODEL||'gemini-3.5-flash-lite';const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;let last;for(let i=0;i<3;i++){const r=await fetch(url,{method:'POST',headers:{'x-goog-api-key':key,'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt(d)+(i?'\nA tentativa anterior falhou. Gere propostas novas e cumpra o JSON exatamente.':'')}]}],generationConfig:{responseMimeType:'application/json'}})});const raw=await r.json();if(!r.ok){if(r.status===429)throw new Error('Limite gratuito do Gemini atingido. Aguarde e tente novamente.');throw new Error(raw.error?.message||'Falha ao gerar atividade com Gemini.')}try{const text=raw.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('').trim();if(!text)throw new Error('O Gemini não retornou conteúdo.');return validate(JSON.parse(text.replace(/^```json\s*/i,'').replace(/```$/i,'').trim()),d.quantity)}catch(e){last=e}}throw last||new Error('Não foi possível gerar uma atividade válida.')}
-function uri(svg){return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg).replace(/%0A/g,'')}
-function illustration(d){if(!d.illustrated)return null;const s='#111',fill=d.blackWhite?'#fff':'#f4f0ff',accent=d.blackWhite?'#fff':'#ddd5ff';let art='';const t=norm(d.topic+' '+d.subject);if(/letra|alfabeto|portugues|lingua/.test(t))art=`<text x="350" y="225" text-anchor="middle" font-size="150" font-family="Arial" font-weight="700" fill="${fill}" stroke="${s}" stroke-width="4">A B C</text>`;else if(/numero|conta|matemat/.test(t))art=`<circle cx="190" cy="195" r="70" fill="${fill}" stroke="${s}" stroke-width="7"/><text x="190" y="220" text-anchor="middle" font-size="80" font-family="Arial">1</text><rect x="315" y="125" width="140" height="140" rx="20" fill="${accent}" stroke="${s}" stroke-width="7"/><text x="385" y="220" text-anchor="middle" font-size="80" font-family="Arial">2</text><circle cx="555" cy="195" r="70" fill="${fill}" stroke="${s}" stroke-width="7"/><text x="555" y="220" text-anchor="middle" font-size="80" font-family="Arial">3</text>`;else if(/animal|fazenda|cachorro|gato/.test(t))art=`<circle cx="350" cy="190" r="95" fill="${fill}" stroke="${s}" stroke-width="7"/><path d="M270 130l-65-65 20 120M430 130l65-65-20 120" fill="${fill}" stroke="${s}" stroke-width="7" stroke-linejoin="round"/><circle cx="318" cy="180" r="9"/><circle cx="382" cy="180" r="9"/><path d="M330 220q20 22 40 0" fill="none" stroke="${s}" stroke-width="7" stroke-linecap="round"/>`;else if(/flor|planta|natureza/.test(t))art=`<circle cx="350" cy="165" r="42" fill="${fill}" stroke="${s}" stroke-width="6"/><g fill="${accent}" stroke="${s}" stroke-width="6"><circle cx="350" cy="95" r="42"/><circle cx="420" cy="165" r="42"/><circle cx="350" cy="235" r="42"/><circle cx="280" cy="165" r="42"/></g><path d="M350 277v90M350 325q-60-35-75 15M350 340q55-35 78 5" fill="none" stroke="${s}" stroke-width="7"/>`;else art=`<path d="M220 270q130-190 260 0" fill="${fill}" stroke="${s}" stroke-width="8"/><circle cx="275" cy="170" r="20" fill="${accent}" stroke="${s}" stroke-width="5"/><circle cx="425" cy="170" r="20" fill="${accent}" stroke="${s}" stroke-width="5"/><path d="M300 225q50 45 100 0" fill="none" stroke="${s}" stroke-width="7" stroke-linecap="round"/>`;const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="700" height="390" viewBox="0 0 700 390"><rect width="700" height="390" fill="white"/>${art}</svg>`;return uri(svg)}
-module.exports=async function(req,res){if(req.method!=='POST')return json(res,405,{error:'Método não permitido.'});const key=process.env.GEMINI_API_KEY;if(!key)return json(res,500,{error:'GEMINI_API_KEY não configurada na Vercel.'});try{const b=typeof req.body==='string'?JSON.parse(req.body):(req.body||{});const allowed=['objetiva','discursiva','mista',...SPECIAL];const d={subject:clean(b.subject,100),grade:clean(b.grade,80),topic:clean(b.topic,180),quantity:Math.max(1,Math.min(30,Number(b.quantity)||8)),questionType:allowed.includes(b.questionType)?b.questionType:'objetiva',difficulty:['normal','bem-infantil','facil','desafiador'].includes(b.difficulty)?b.difficulty:'normal',instructions:clean(b.instructions,700),illustrated:Boolean(b.illustrated),adapted:Boolean(b.adapted),blackWhite:Boolean(b.blackWhite)};if(!d.subject||!d.grade||!d.topic)return json(res,400,{error:'Preencha disciplina, ano e tema.'});const a=await generate(key,d);return json(res,200,{...a,illustration:illustration(d),illustrationWarning:null})}catch(e){return json(res,500,{error:e.message||'Erro inesperado.'})}}
+function json(res, status, body) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(body));
+}
+
+function clean(value, max = 300) { return String(value ?? '').trim().slice(0, max); }
+function normalizeText(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+const CHILD_TYPES = ['pintura','cobrir','ligar','circular','completar','recortar','coordenacao','objetiva','discursiva'];
+const ICONS = ['abelha','elefante','igreja','uva','maca','bola','flor','sol','casa','arvore','peixe','gato','cachorro','borboleta','estrela','coracao','livro','lapis','banana','carro'];
+
+function sanitizeVisual(v, fallbackType) {
+  v = v && typeof v === 'object' ? v : {};
+  const kind = CHILD_TYPES.includes(v.kind) ? v.kind : fallbackType;
+  const icon = ICONS.includes(normalizeText(v.icon)) ? normalizeText(v.icon) : '';
+  const letter = clean(v.letter, 3).toUpperCase();
+  const number = clean(v.number, 4);
+  const word = clean(v.word, 40).toUpperCase();
+  const missingIndex = Number.isInteger(v.missingIndex) ? Math.max(0, Math.min(20, v.missingIndex)) : 0;
+  let items = Array.isArray(v.items) ? v.items.map(x => clean(x, 25)).filter(Boolean).slice(0, 16) : [];
+  let pairs = Array.isArray(v.pairs) ? v.pairs.slice(0, 6).map(p => ({
+    left: clean(p?.left, 24), right: clean(p?.right, 24), icon: ICONS.includes(normalizeText(p?.icon)) ? normalizeText(p.icon) : ''
+  })).filter(p => p.left || p.right || p.icon) : [];
+  return { kind, icon, letter, number, word, missingIndex, items, pairs };
+}
+
+function validateActivity(activity, topic, quantity, data) {
+  if (!activity || !Array.isArray(activity.questions) || activity.questions.length !== quantity) {
+    throw new Error('A IA não retornou a quantidade correta de questões.');
+  }
+  const topicNorm = normalizeText(topic), prompts = new Set();
+  activity.title = clean(activity.title, 120) || 'Atividade';
+  activity.instructions = clean(activity.instructions, 400) || 'Faça as atividades com atenção.';
+
+  activity.questions.forEach((q, i) => {
+    q.prompt = clean(q.prompt, 700);
+    if (!q.prompt) throw new Error(`Questão ${i + 1} sem enunciado.`);
+    const promptNorm = normalizeText(q.prompt);
+    if (prompts.has(promptNorm)) throw new Error('A IA repetiu questões.');
+    prompts.add(promptNorm);
+
+    const requested = data.questionType;
+    let qType = CHILD_TYPES.includes(q.type) ? q.type : (requested === 'infantil_mista' ? 'pintura' : requested);
+    if (requested !== 'infantil_mista' && requested !== 'mista') qType = requested;
+    if (!CHILD_TYPES.includes(qType)) qType = 'discursiva';
+    q.type = qType;
+
+    if (q.type === 'objetiva') {
+      if (!Array.isArray(q.options) || q.options.length !== 4) throw new Error(`Questão ${i + 1} sem quatro alternativas.`);
+      q.options = q.options.map(x => clean(x, 250));
+      const normalized = q.options.map(normalizeText);
+      if (new Set(normalized).size !== 4) throw new Error(`Questão ${i + 1} possui alternativas repetidas.`);
+      if (normalized.some(x => x === topicNorm)) throw new Error(`Questão ${i + 1} usa o próprio tema como alternativa.`);
+      if (!['A','B','C','D'].includes(q.correctOption)) throw new Error(`Gabarito inválido na questão ${i + 1}.`);
+      const idx = 'ABCD'.indexOf(q.correctOption);
+      q.answer = `${q.correctOption}) ${q.options[idx]}`;
+    } else {
+      q.options = null;
+      q.correctOption = null;
+      q.answer = clean(q.answer, 800);
+      if (!q.answer) q.answer = 'Atividade prática — observar a realização da criança.';
+    }
+    q.visual = sanitizeVisual(q.visual, q.type);
+  });
+  return activity;
+}
+
+function buildPrompt(data) {
+  const isEI = /Educação Infantil|G4|G5/i.test(data.grade);
+  const typeInstructions = {
+    objetiva: 'Todas as questões devem ser objetivas, com exatamente quatro alternativas e apenas uma correta.',
+    discursiva: 'Todas as questões devem ser discursivas e ter resposta-modelo específica.',
+    mista: 'Misture questões objetivas e discursivas de forma equilibrada.',
+    pintura: 'Todas devem ser de PINTURA/COLORIR. O objeto a pintar precisa existir no campo visual.',
+    cobrir: 'Todas devem ser de COBRIR/PONTILHADO. Use letra, número ou palavra curta no campo visual.',
+    ligar: 'Todas devem ser de LIGAR. Gere pares claros no campo visual.pairs.',
+    circular: 'Todas devem ser de CIRCULAR. Gere uma lista de elementos misturados em visual.items, incluindo alvos e distratores.',
+    completar: 'Todas devem ser de COMPLETAR. Informe visual.word e visual.missingIndex para criar uma lacuna real.',
+    recortar: 'Todas devem ser de RECORTAR E COLAR, com peças simples em visual.items.',
+    coordenacao: 'Todas devem trabalhar COORDENAÇÃO MOTORA com traçados simples.',
+    infantil_mista: 'Misture pintura, cobrir, ligar, circular, completar, recortar e coordenação motora. NÃO use só caixas vazias.'
+  };
+
+  return `Você é uma professora brasileira experiente. Crie uma atividade real, pronta para impressão.
+Disciplina: ${data.subject}
+Ano/série: ${data.grade}
+Tema: ${data.topic}
+Quantidade exata: ${data.quantity}
+Tipo: ${data.questionType}
+Nível: ${data.level}
+Instruções do professor: ${data.instructions || 'Nenhuma'}
+Adaptação TEA/TDAH: ${data.adapted ? 'Sim. Frases curtas, linguagem literal, uma tarefa por bloco e baixa carga visual.' : 'Não.'}
+${isEI ? `EDUCAÇÃO INFANTIL: linguagem curta, concreta, lúdica, adequada a 4–5 anos; o adulto pode ler o comando; considere BNCC e Campos de Experiência.` : ''}
+${typeInstructions[data.questionType] || typeInstructions.mista}
+
+REGRAS VISUAIS OBRIGATÓRIAS:
+- Quando o tipo for pintura, cobrir, ligar, circular, completar, recortar ou coordenacao, preencha o objeto "visual". O sistema desenhará o exercício a partir desses dados.
+- Nunca escreva apenas "pinte a letra A" sem colocar A em visual.letter.
+- Para "cobrir", use visual.letter OU visual.number OU visual.word; o sistema fará o pontilhado real.
+- Para "ligar", use visual.pairs com 2 a 5 pares. Ex.: [{"left":"A","right":"ABELHA","icon":"abelha"}].
+- Para "circular", use visual.items com 8 a 14 elementos curtos, misturando alvo e distratores.
+- Para "completar", use visual.word e visual.missingIndex (posição da letra que deve virar lacuna).
+- Para "pintura", escolha visual.icon dentre: ${ICONS.join(', ')} e, se útil, visual.letter.
+- Para "recortar", use visual.items com 3 a 6 peças.
+- Para "coordenacao", use visual.letter, visual.number ou visual.word para guiar o traçado.
+
+Responda SOMENTE com JSON válido:
+{
+  "title":"título curto",
+  "instructions":"orientação ao aluno",
+  "questions":[
+    {
+      "type":"pintura|cobrir|ligar|circular|completar|recortar|coordenacao|objetiva|discursiva",
+      "prompt":"...",
+      "options":null,
+      "correctOption":null,
+      "answer":"orientação/gabarito",
+      "visual":{"kind":"pintura","icon":"abelha","letter":"A","number":"","word":"","missingIndex":0,"items":[],"pairs":[]}
+    }
+  ]
+}`;
+}
+
+async function createQuestions(apiKey, data) {
+  let lastError;
+  const model = process.env.GEMINI_TEXT_MODEL || 'gemini-3.5-flash-lite';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: buildPrompt(data) + (attempt ? '\nA tentativa anterior falhou na validação. Gere tudo novamente e cumpra exatamente o JSON.' : '') }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
+    });
+    const raw = await response.json();
+    if (!response.ok) {
+      const message = raw.error?.message || 'Falha ao gerar atividade com Gemini.';
+      if (response.status === 429) throw new Error('Limite gratuito do Gemini atingido. Aguarde um pouco e tente novamente.');
+      throw new Error(message);
+    }
+    try {
+      const text = raw.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('').trim();
+      if (!text) throw new Error('O Gemini não retornou conteúdo.');
+      const parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```$/i, '').trim());
+      return validateActivity(parsed, data.topic, data.quantity, data);
+    } catch (error) { lastError = error; }
+  }
+  throw lastError || new Error('Não foi possível gerar uma atividade válida.');
+}
+
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') return json(res, 405, { error: 'Método não permitido.' });
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return json(res, 500, { error: 'GEMINI_API_KEY não configurada na Vercel.' });
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const allowedTypes = ['objetiva','discursiva','mista','pintura','cobrir','ligar','circular','completar','recortar','coordenacao','infantil_mista'];
+    const data = {
+      subject: clean(body.subject, 80), grade: clean(body.grade, 60), topic: clean(body.topic, 160),
+      quantity: Math.max(1, Math.min(30, Number(body.quantity) || 10)),
+      questionType: allowedTypes.includes(body.questionType) ? body.questionType : 'objetiva',
+      level: ['bem_infantil','normal','desafiadora'].includes(body.level) ? body.level : 'normal',
+      instructions: clean(body.instructions, 600), illustrated: Boolean(body.illustrated),
+      adapted: Boolean(body.adapted), blackWhite: Boolean(body.blackWhite)
+    };
+    if (!data.subject || !data.grade || !data.topic) return json(res, 400, { error: 'Preencha disciplina, ano e tema.' });
+    const activity = await createQuestions(apiKey, data);
+    return json(res, 200, { ...activity, illustration: null, illustrationWarning: null });
+  } catch (error) {
+    return json(res, 500, { error: error.message || 'Erro inesperado.' });
+  }
+};
