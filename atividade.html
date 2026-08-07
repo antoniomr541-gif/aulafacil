@@ -34,10 +34,21 @@ function iconSvg(name){
   return `<svg class="line-icon" viewBox="0 0 100 100" aria-hidden="true">${body}</svg>`;
 }
 function labelType(t){return({pintura:'PINTURA',cobrir:'COBRIR',ligar:'LIGAR',circular:'CIRCULAR',completar:'COMPLETAR',recortar:'RECORTAR E COLAR',coordenacao:'COORDENAÇÃO',objetiva:'OBJETIVA',discursiva:'DISCURSIVA'})[t]||String(t).toUpperCase()}
-function traceText(v){const text=(v.letter||v.number||v.word||'A').slice(0,12);return `<div class="trace-row">${Array.from({length:4},()=>`<span>${E(text)}</span>`).join('')}</div>`}
+function traceText(v){
+  const text=(v.letter||v.number||v.word||'A').slice(0,12).toUpperCase();
+  const safe=E(text);
+  const count=text.length>3?2:3;
+  return `<div class="trace-row">${Array.from({length:count},()=>`<svg class="trace-letter-svg" viewBox="0 0 180 150" role="img" aria-label="${safe} pontilhado"><text x="90" y="112" text-anchor="middle" class="trace-letter-text">${safe}</text></svg>`).join('')}</div>`;
+}
+function motorTrace(v){
+  const text=(v.letter||v.number||v.word||'').slice(0,12).toUpperCase();
+  if(text) return traceText(v)+`<div class="motor-lines"><span></span><span></span><span></span></div>`;
+  return `<div class="motor-patterns"><svg viewBox="0 0 700 210" aria-label="Traçados de coordenação motora"><path d="M20 45 C70 5 120 85 170 45 S270 5 320 45 S420 85 470 45 S570 5 680 45"/><path d="M20 105 L80 65 L140 105 L200 65 L260 105 L320 65 L380 105 L440 65 L500 105 L560 65 L620 105 L680 65"/><path d="M20 165 C55 125 90 205 125 165 S195 125 230 165 S300 205 335 165 S405 125 440 165 S510 205 545 165 S615 125 680 165"/></svg></div>`;
+}
 function renderVisual(q){const v=q.visual||{};const kind=v.kind||q.type;
   if(kind==='pintura') return `<div class="visual-box paint-box">${v.letter?`<div class="big-outline-letter">${E(v.letter)}</div>`:''}${iconSvg(v.icon||'estrela')}</div>`;
-  if(kind==='cobrir'||kind==='coordenacao') return `<div class="visual-box trace-box">${traceText(v)}<div class="motor-lines"><span></span><span></span><span></span></div></div>`;
+  if(kind==='cobrir') return `<div class="visual-box trace-box">${traceText(v)}<div class="trace-guide">Passe o lápis sobre o pontilhado.</div></div>`;
+  if(kind==='coordenacao') return `<div class="visual-box trace-box">${motorTrace(v)}</div>`;
   if(kind==='ligar'){const pairs=(v.pairs||[]);if(!pairs.length)return `<div class="visual-box connect-box"><div class="connect-col"><div>A</div><div>E</div><div>I</div></div><div class="connect-col"><div>${iconSvg('abelha')}</div><div>${iconSvg('elefante')}</div><div>${iconSvg('igreja')}</div></div></div>`;return `<div class="visual-box connect-box"><div class="connect-col">${pairs.map(p=>`<div class="connect-item">${E(p.left||'')}</div>`).join('')}</div><div class="connect-col">${pairs.map(p=>`<div class="connect-item">${p.icon?iconSvg(p.icon):E(p.right||'')}</div>`).join('')}</div></div>`;}
   if(kind==='circular'){const items=(v.items&&v.items.length?v.items:['A','O','E','O','I','U','O','A','E','O']);return `<div class="visual-box circle-grid">${items.map(x=>`<span>${E(x)}</span>`).join('')}</div>`;}
   if(kind==='completar'){let word=(v.word||'UVA').toUpperCase(),idx=Math.min(Math.max(Number(v.missingIndex)||0,0),Math.max(word.length-1,0));let chars=[...word];if(chars.length)chars[idx]='_';return `<div class="visual-box complete-box"><div class="missing-word">${E(chars.join(' '))}</div>${v.icon?iconSvg(v.icon):''}</div>`;}
